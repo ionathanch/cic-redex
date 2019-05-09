@@ -43,7 +43,7 @@
   (e t ::= c x d (λ (x : t) e) (@ e e) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
   (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; unannotated type is a full type (with size ∞)
   (Γ ::= · (Γ (x : t)) (Γ (x = e : t)))
-  (Δ ::= · (Δ (D : n t Γ)))
+  (Δ ::= · (Δ (D : n V t Γ)))
 
   (v ::= ⊕ + - ○)  ;; strictly positive, positive, negative, invariant polarities
   (V ::= · (V v))   ;; vector of polarities for parameters of inductive types
@@ -111,26 +111,26 @@
   (default-equiv (curry alpha-equivalent? cicL))
 
   (define-term Δ0
-    (· (False : 0 Prop ·)))
+    (· (False : 0 · Prop ·)))
 
   (define-term Δ01
-    (Δ0 (Unit : 0 Prop (· (tt : Unit)))))
+    (Δ0 (Unit : 0 · Prop (· (tt : Unit)))))
 
   (define-term Δb
-    (Δ01 (Bool : 0 Set ((· (true : Bool)) (false : Bool)))))
+    (Δ01 (Bool : 0 · Set ((· (true : Bool)) (false : Bool)))))
 
   (define-term Δnb
-    (Δb (Nat : 0 Set ((· (z : Nat)) (s : (Π (x : Nat) Nat))))))
+    (Δb (Nat : 0 · Set ((· (z : Nat)) (s : (Π (x : Nat) Nat))))))
 
   ;; Tests parameters
   (define-term Δlist
-    (Δnb (List : 1 (Π (A : Set) Set)
+    (Δnb (List : 1 (· ⊕) (Π (A : Set) Set)
                 ((· (nil : (Π (A : Set) (@ List A))))
                  (cons : (-> (A : Set) (a : A) (ls : (@ List A)) (@ List A)))))))
 
   ;; Check that all constructors have explicit parameter declarations; implicit is surface sugar
   (define-term Δbadlist
-    (Δnb (List : 1 (Π (A : Set) Set)
+    (Δnb (List : 1 (· ⊕) (Π (A : Set) Set)
                 ((· (nil : (@ List A)))
                  (cons : (-> (a : A) (ls : (@ List A)) (@ List A)))))))
 
@@ -449,6 +449,18 @@
 
 (begin ;; well-formed environment
 
+  ;; Make sure length of polarities is the same as number of parameters
+  (define-judgment-form cicL
+    #:mode (valid-polarities I I)
+    #:contract (valid-polarities n V)
+
+    [-----------------------
+     (valid-polarities 0 ·)]
+
+    [(valid-polarities ,(sub1 (term n)) V)
+     ---------------------------
+     (valid-polarities n (V _))])
+
   (define-judgment-form cicL
     #:mode (valid-parameters I I I I)
     #:contract (valid-parameters Δ n t t)
@@ -463,7 +475,7 @@
   ;; Holds when the type t is a valid type for a constructor of D
   (define-judgment-form cicL
     #:mode (valid-constructors I I)
-    #:contract (valid-constructors (Δ (D : n t Γ)) Γ)
+    #:contract (valid-constructors (Δ (D : n V t Γ)) Γ)
 
     [------------------------- "VC-Empty"
      (valid-constructors Δ ·)]
@@ -476,7 +488,7 @@
      (type-infer Δ (· (D : t_D)) t U)
      (valid-constructors Δ_0 Γ_c)
      -----------------------------------------------------------------"VC-C"
-     (valid-constructors (name Δ_0 (Δ (D : n t_D _))) (Γ_c (c : t)))])
+     (valid-constructors (name Δ_0 (Δ (D : n _ t_D _))) (Γ_c (c : t)))])
 
   ;; Under global declarations Δ, is the term environment well-formed?
   (define-judgment-form cicL
@@ -509,8 +521,9 @@
      (where (c_!_0 ...) (c_i ...)) ; all constructors unique
      (type-infer Δ · t_D U_D)
      (valid-constructors Δ_0 Γ_c)
+     (valid-polarities n V)
      ---------------------------------------------------------- "W-Ind"
-     (wf (name Δ_0 (Δ (D : n (name t_D (in-hole Ξ U)) Γ_c))) ·)]))
+     (wf (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ U)) Γ_c))) ·)]))
 
 (module+ test
   (redex-judgment-holds-chk
@@ -1027,7 +1040,7 @@
      (D °)
      (where #t (Δ-in-dom Δ D))]
     [(erase-to-position Δ S_0 (D S_1))
-     ,(if (eq? (term S_0) (term (base S_1))) 
+     ,(if (eq? (term S_0) (term (base S_1)))
           (term (D *))
           (term (D °)))]
     [(erase-to-position Δ S (λ (x : t) e))
@@ -1073,26 +1086,26 @@
     Δ-in-constructor-dom : Δ c -> #t or #f
     [(Δ-in-constructor-dom Δ c)
      ,(ormap (lambda (Γ_c) (term (snoc-env-in-dom ,Γ_c c))) (term (Γ_c ...)))
-     (where ((_ _ _ _ Γ_c) ...) (snoc-env->als Δ))])
+     (where ((_ _ _ _ _ Γ_c) ...) (snoc-env->als Δ))])
 
   ;; make D : t ∈ Δ a little easier to use, prettier to render
   (define-judgment-form cicL
     #:mode (Δ-type-in I I O)
     #:contract (Δ-type-in Δ D t)
 
-    [(where (D : _ t _) (snoc-env-ref Δ D))
+    [(where (D : _ _ t _) (snoc-env-ref Δ D))
      -------------------------------
      (Δ-type-in Δ D t)]
-     
-    [(where (D : _ t _) (snoc-env-ref Δ D))
+
+    [(where (D : _ _ t _) (snoc-env-ref Δ D))
      -------------------------------
      (Δ-type-in Δ (D S) t)]
-     
-    [(where (D : _ t _) (snoc-env-ref Δ D))
+
+    [(where (D : _ _ t _) (snoc-env-ref Δ D))
      -------------------------------
      (Δ-type-in Δ (D *) t)]
-     
-    [(where (D : _ t _) (snoc-env-ref Δ D))
+
+    [(where (D : _ _ t _) (snoc-env-ref Δ D))
      -------------------------------
      (Δ-type-in Δ (D °) t)])
 
@@ -1102,7 +1115,7 @@
     #:pre (Δ-in-dom Δ_0 D_0)
     [(Δ-ref-parameter-count Δ D)
      n
-     (where (D : n _ _) (snoc-env-ref Δ D))])
+     (where (D : n _ _ _) (snoc-env-ref Δ D))])
 
   ;; Return the number of parameters for the inductive type D that has a constructor c_0
   (define-metafunction cicL
@@ -1110,7 +1123,7 @@
     #:pre (Δ-in-constructor-dom Δ_0 c_0)
     [(Δ-constructor-ref-parameter-count Δ c)
      n
-     (where (D : n _ _) (Δ-ref-by-constructor Δ c))])
+     (where (D : n _ _ _) (Δ-ref-by-constructor Δ c))])
 
   ;; Return the number of non-parameters arguments for the constructor c_0
   (define-metafunction cicL
@@ -1127,11 +1140,11 @@
     #:pre (Δ-in-constructor-dom Δ_0 c_0)
     [(Δ-key-by-constructor Δ c)
      D
-     (where (_ ... (D _ _ _ Γ_c) _ ...) (snoc-env->als Δ))
+     (where (_ ... (D _ _ _ _ Γ_c) _ ...) (snoc-env->als Δ))
      (side-condition (term (snoc-env-in-dom Γ_c c)))])
 
   (define-metafunction cicL
-    Δ-ref-by-constructor : Δ_0 c_0 -> (D : n t Γ_c)
+    Δ-ref-by-constructor : Δ_0 c_0 -> (D : n V t Γ_c)
     #:pre (Δ-in-constructor-dom Δ_0 c_0)
     [(Δ-ref-by-constructor Δ c)
      (snoc-env-ref Δ D)
@@ -1143,7 +1156,7 @@
     #:pre (Δ-in-dom Δ_0 D_0)
     [(Δ-ref-constructor-map Δ D)
      ,(term (snoc-env->als Γ_c))
-     (where (_ _ _ _ Γ_c) (snoc-env-ref Δ D))])
+     (where (_ _ _ _ _ Γ_c) (snoc-env-ref Δ D))])
 
   (define-metafunction cicL
     Δ-ref-constructors : Δ_0 D_0 -> (c ...)
@@ -1158,7 +1171,7 @@
     #:pre (Δ-in-constructor-dom Δ_0 c_0)
     [(Δ-ref-constructor-type Δ c)
      t
-     (where (_ _ _ _ Γ_c) (Δ-ref-by-constructor Δ c))
+     (where (_ _ _ _ _ Γ_c) (Δ-ref-by-constructor Δ c))
      (judgment-holds (Γ-in Γ_c c t))])
 
   ;; Make c : t ∈ Δ a little easier to use, prettier to render
@@ -1177,7 +1190,7 @@
                 (= (term (Θ-length Θ_0)) (term (Δ-ref-parameter-count Δ_0 D_0))))
     [(Δ-ref-index-Ξ Δ D Θ)
      Ξ
-     (where (D : _ t _) (snoc-env-ref Δ D))
+     (where (D : _ _ t _) (snoc-env-ref Δ D))
      (where (in-hole Ξ U) (instantiate t Θ))])
 
   (define-metafunction cicL
