@@ -832,6 +832,138 @@
 ;; ------------------------------------------------------------------------
 ;; Typing aux
 
+(begin ;; positivity
+
+  ;; positivity/negativity of stage variables
+  (define-judgment-form cicL
+    #:mode (pos-stage I I I)
+    #:contract (pos-stage Δ s e)
+
+    [(side-condition (not-free-in s e))
+     ------------------
+     (pos-stage Δ s e)]
+
+     [(neg-stage Δ s t_0) (pos-stage Δ s t_1)
+      ----------------------------------
+      (pos-stage Δ s (Π (x : t_0) t_1))]
+
+    [(where Θ_p (take-parameters Δ D Θ))
+     (where Θ_a (take-indicies   Δ D Θ))
+     (where V (Δ-ref-polarities Δ D))
+     (pos-stage-vector Δ V s Θ_p)
+     (side-condition (not-free-in s Θ_a))
+     ----------------------------------
+     (pos-stage Δ s (in-hole Θ (D S)))])
+
+  (define-judgment-form cicL
+    #:mode (neg-stage I I I)
+    #:contract (neg-stage Δ s e)
+
+    [(side-condition (not-free-in s e))
+     ------------------
+     (neg-stage Δ s e)]
+
+     [(pos-stage Δ s t_0) (neg-stage Δ s t_1)
+      ----------------------------------
+      (neg-stage Δ s (Π (x : t_0) t_1))]
+
+    [(side-condition ,(not (eq? (term (bare S)) (term s))))
+     (where Θ_p (take-parameters Δ D Θ))
+     (where Θ_a (take-indicies   Δ D Θ))
+     (where V (Δ-ref-polarities Δ D))
+     (neg-stage-vector Δ V s Θ_p)
+     (side-condition (not-free-in s Θ_a))
+     ----------------------------------
+     (neg-stage Δ s (in-hole Θ (D S)))])
+
+  (define-judgment-form cicL
+    #:mode (pos-stage-vector I I I I)
+    #:contract (pos-stage-vector Δ V s Θ)
+
+    [------------------------------
+     (pos-stage-vector Δ · s hole)]
+
+    [(pos-stage Δ s e)
+     (pos-stage-vector Δ V s Θ)
+     ------------------------------------
+     (pos-stage-vector Δ (V ⊕) s (@ Θ e))]
+
+    [(pos-stage Δ s e)
+     (pos-stage-vector Δ V s Θ)
+     ------------------------------------
+     (pos-stage-vector Δ (V +) s (@ Θ e))]
+
+    [(neg-stage Δ s e)
+     (pos-stage-vector Δ V s Θ)
+     ------------------------------------
+     (pos-stage-vector Δ (V -) s (@ Θ e))]
+
+    [(side-condition (not-free-in s e))
+     (pos-stage-vector Δ V s Θ)
+     ------------------------------------
+     (pos-stage-vector Δ (V ○) s (@ Θ e))])
+
+  (define-judgment-form cicL
+    #:mode (neg-stage-vector I I I I)
+    #:contract (neg-stage-vector Δ V s Θ)
+
+    [------------------------------
+     (neg-stage-vector Δ · s hole)]
+
+    [(neg-stage Δ s e)
+     (neg-stage-vector Δ V s Θ)
+     ------------------------------------
+     (neg-stage-vector Δ (V ⊕) s (@ Θ e))]
+
+    [(neg-stage Δ s e)
+     (neg-stage-vector Δ V s Θ)
+     ------------------------------------
+     (neg-stage-vector Δ (V +) s (@ Θ e))]
+
+    [(pos-stage Δ s e)
+     (neg-stage-vector Δ V s Θ)
+     ------------------------------------
+     (neg-stage-vector Δ (V -) s (@ Θ e))]
+
+    [(side-condition (not-free-in s e))
+     (neg-stage-vector Δ V s Θ)
+     ------------------------------------
+     (neg-stage-vector Δ (V ○) s (@ Θ e))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (pos-stage Δlist)
+   [s Prop]
+   [s (Π (x : Prop) Set)]
+   [s (@ (List s) (Nat s))]
+   [s (Π (n : Nat) (@ (List s) Nat))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (neg-stage Δlist)
+   [s Prop]
+   [s (Π (x : Prop) Set)]
+   [s (@ (List r) (Nat r))]
+   [s (Π (l : (@ (List s) Nat)) (Nat r))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (pos-stage-vector Δlist)
+   [· s hole]
+   [(· ⊕) s (@ hole (@ (List s) Nat))]
+   [(· +) s (@ hole (@ (List s) Nat))]
+   [(· -) s (@ hole (@ (List r) Nat))]
+   [(· ○) s (@ hole Nat)]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (neg-stage-vector Δlist)
+   [· s hole]
+   [(· ⊕) s (@ hole (@ (List r) Nat))]
+   [(· +) s (@ hole (@ (List r) Nat))]
+   [(· -) s (@ hole (@ (List s) Nat))]
+   [(· ○) s (@ hole Nat)]))
+
 (begin ;; strict positivity
 
   ;; t satisfied the strict positivity condition for D
