@@ -425,11 +425,58 @@
   [(convert Δ Γ t_0 t_1)
    (subtype Δ (Γ (x_0 : t_0)) e_0 (substitute e_1 x_1 x_0))
    ------------------------------------------------------ "≼-Π"
-   (subtype Δ Γ (Π (x_0 : t_0) e_0) (Π (x_1 : t_1) e_1))])
+   (subtype Δ Γ (Π (x_0 : t_0) e_0) (Π (x_1 : t_1) e_1))]
+
+  ;; Fully-applied inductive type ((D S) ps as)
+  ;; is a subtype of ((D S') ps' as')
+  ;; if S ⊑ S', ps ≼ ps' wrt V, and as ≡ as'
+  ;; where V is the vector of polarities for D
+  [(<=S S_0 S_1)
+   (where Θ_0p (take-parameters Δ D Θ_0))
+   (where Θ_1p (take-parameters Δ D Θ_1))
+   (where (e_0 ...) (Θ-flatten (take-indicies Δ D Θ_0)))
+   (where (e_1 ...) (Θ-flatten (take-indicies Δ D Θ_1)))
+   (where V (Δ-ref-polarities Δ D))
+   (subtype-vector Δ Γ V Θ_0p Θ_1p)
+   (convert Δ Γ e_0 e_1) ...
+   ---------------------------------------------------------- "≼-D"
+   (subtype Δ Γ (in-hole Θ_0 (D S_0)) (in-hole Θ_1 (D S_1)))])
+
+(define-judgment-form cicL
+  #:mode (subtype-vector I I I I I)
+  #:contract (subtype-vector Δ Γ V Θ_0 Θ_1)
+
+  [(convert Δ Γ e_0 e_1)
+   (subtype-vector Δ Γ V Θ_0 Θ_1)
+   --------------------------------------------------- "vst-inv"
+   (subtype-vector Δ Γ (V ○) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+
+  [(subtype Δ Γ e_0 e_1)
+   (subtype-vector Δ Γ V Θ_0 Θ_1)
+   --------------------------------------------------- "vst-strict-pos"
+   (subtype-vector Δ Γ (V ⊕) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+
+  [(subtype Δ Γ e_0 e_1)
+   (subtype-vector Δ Γ V Θ_0 Θ_1)
+   --------------------------------------------------- "vst-pos"
+   (subtype-vector Δ Γ (V +) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+
+  [(subtype Δ Γ e_1 e_0)
+   (subtype-vector Δ Γ V Θ_0 Θ_1)
+   --------------------------------------------------- "vst-neg"
+   (subtype-vector Δ Γ (V -) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+
+  ;; Θ should be holes in this rule
+  ;; not sure why the rule has them as vectors in Fig. 2.1
+  [(where (e_0 ...) (Θ-flatten Θ_0))
+   (where (e_1 ...) (Θ-flatten Θ_1))
+   (convert Δ Γ e_0 e_1) ...
+   ------------------------------- "vst-conv"
+   (subtype-vector Δ Γ · Θ_0 Θ_1)])
 
 (module+ test
   (redex-judgment-holds-chk
-   (subtype · ·)
+   (subtype Δlist ·)
    [Prop Prop]
    [Prop Set]
    [Prop (Type 1)]
@@ -442,7 +489,18 @@
    [#:f (Π (x : Prop) Prop) (Π (x : Set) Set)]
    [#:f (Π (x : Set) Prop) (Π (x : Prop) Set)]
    [(Π (x : Set) Prop) (Π (x : Set) Set)]
-   [(@ (λ (x : (Type 1)) Set) Set) Set]))
+   [(@ (λ (x : (Type 1)) Set) Set) Set]
+   [(@ (List S) Nat) (@ (List (^ S)) Nat)]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (subtype-vector · ·)
+   [· hole hole]
+   [(· ⊕) (@ hole Prop) (@ hole Set)]
+   [(· +) (@ hole Prop) (@ hole Set)]
+   [(· -) (@ hole Set) (@ hole Prop)]
+   [(· ○) (@ hole Prop) (@ hole Prop)]
+   [((· -) +) (@ (@ hole Set) Prop) (@ (@ hole Prop Set))]))
 
 ;; ------------------------------------------------------------------------
 ;; Typing
@@ -1133,6 +1191,14 @@
      ,(- (term (Ξ-length Ξ)) (term n))
      (where n (Δ-constructor-ref-parameter-count Δ c))
      (judgment-holds (Δ-constr-in Δ c (in-hole Ξ (in-hole Θ D))))])
+
+  ;; Return the vector of polarities for the inductive type D
+  (define-metafunction cicL
+    Δ-ref-polarities : Δ_0 D_0 -> V
+    #:pre (Δ-in-dom Δ_0 D_0)
+    [(Δ-ref-polarities Δ D)
+     V
+     (where (D : _ V _ _) (snoc-env-ref Δ D))])
 
   ;; Returns the inductively defined type that x constructs
   (define-metafunction cicL
