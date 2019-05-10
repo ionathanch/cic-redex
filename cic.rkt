@@ -832,9 +832,8 @@
 ;; ------------------------------------------------------------------------
 ;; Typing aux
 
-(begin ;; positivity
+(begin ;; positivity/negativity of stage variables
 
-  ;; positivity/negativity of stage variables
   (define-judgment-form cicL
     #:mode (pos-stage I I I)
     #:contract (pos-stage Δ s e)
@@ -843,9 +842,9 @@
      ------------------
      (pos-stage Δ s e)]
 
-     [(neg-stage Δ s t_0) (pos-stage Δ s t_1)
-      ----------------------------------
-      (pos-stage Δ s (Π (x : t_0) t_1))]
+    [(neg-stage Δ s t_0) (pos-stage Δ s t_1)
+     ----------------------------------
+     (pos-stage Δ s (Π (x : t_0) t_1))]
 
     [(where Θ_p (take-parameters Δ D Θ))
      (where Θ_a (take-indicies   Δ D Θ))
@@ -863,9 +862,9 @@
      ------------------
      (neg-stage Δ s e)]
 
-     [(pos-stage Δ s t_0) (neg-stage Δ s t_1)
-      ----------------------------------
-      (neg-stage Δ s (Π (x : t_0) t_1))]
+    [(pos-stage Δ s t_0) (neg-stage Δ s t_1)
+     ----------------------------------
+     (neg-stage Δ s (Π (x : t_0) t_1))]
 
     [(side-condition ,(not (eq? (term (bare S)) (term s))))
      (where Θ_p (take-parameters Δ D Θ))
@@ -963,6 +962,139 @@
    [(· +) s (@ hole (@ (List r) Nat))]
    [(· -) s (@ hole (@ (List s) Nat))]
    [(· ○) s (@ hole Nat)]))
+
+(begin ;; positivity/negativity of term variables
+
+  (define-judgment-form cicL
+    #:mode (pos-term I I I)
+    #:contract (pos-term Δ x e)
+
+    [(side-condition (not-free-in x e))
+     -----------------
+     (pos-term Δ x e)]
+
+    [(side-condition (alpha-equivalent? cicL x e))
+     -----------------
+     (pos-term Δ x e)]
+
+    [(neg-term Δ x t_0) (pos-term Δ x t_1)
+     ----------------------------------
+     (pos-term Δ x (Π (x : t_0) t_1))]
+
+    [(where Θ_p (take-parameters Δ D Θ))
+     (where Θ_a (take-indicies   Δ D Θ))
+     (where V (Δ-ref-polarities Δ D))
+     (pos-term-vector Δ V x Θ_p)
+     (side-condition (not-free-in x Θ_a))
+     ----------------------------------
+     (pos-term Δ x (in-hole Θ (D S)))])
+
+  (define-judgment-form cicL
+    #:mode (neg-term I I I)
+    #:contract (neg-term Δ x e)
+
+    [(side-condition (not-free-in x e))
+     ------------------
+     (neg-term Δ x e)]
+
+    [(pos-term Δ x t_0) (neg-term Δ x t_1)
+     ----------------------------------
+     (neg-term Δ x (Π (y : t_0) t_1))]
+
+    [(where Θ_p (take-parameters Δ D Θ))
+     (where Θ_a (take-indicies   Δ D Θ))
+     (where V (Δ-ref-polarities Δ D))
+     (neg-term-vector Δ V x Θ_p)
+     (side-condition (not-free-in x Θ_a))
+     ----------------------------------
+     (neg-term Δ x (in-hole Θ (D S)))])
+
+  (define-judgment-form cicL
+    #:mode (pos-term-vector I I I I)
+    #:contract (pos-term-vector Δ V x Θ)
+
+    [------------------------------
+     (pos-term-vector Δ · x hole)]
+
+    [(pos-term Δ x e)
+     (pos-term-vector Δ V x Θ)
+     ------------------------------------
+     (pos-term-vector Δ (V ⊕) x (@ Θ e))]
+
+    [(pos-term Δ x e)
+     (pos-term-vector Δ V x Θ)
+     ------------------------------------
+     (pos-term-vector Δ (V +) x (@ Θ e))]
+
+    [(neg-term Δ x e)
+     (pos-term-vector Δ V x Θ)
+     ------------------------------------
+     (pos-term-vector Δ (V -) x (@ Θ e))]
+
+    [(side-condition (not-free-in x e))
+     (pos-term-vector Δ V x Θ)
+     ------------------------------------
+     (pos-term-vector Δ (V ○) x (@ Θ e))])
+
+  (define-judgment-form cicL
+    #:mode (neg-term-vector I I I I)
+    #:contract (neg-term-vector Δ V x Θ)
+
+    [------------------------------
+     (neg-term-vector Δ · x hole)]
+
+    [(neg-term Δ x e)
+     (neg-term-vector Δ V x Θ)
+     ------------------------------------
+     (neg-term-vector Δ (V ⊕) x (@ Θ e))]
+
+    [(neg-term Δ x e)
+     (neg-term-vector Δ V x Θ)
+     ------------------------------------
+     (neg-term-vector Δ (V +) x (@ Θ e))]
+
+    [(pos-term Δ x e)
+     (neg-term-vector Δ V x Θ)
+     ------------------------------------
+     (neg-term-vector Δ (V -) x (@ Θ e))]
+
+    [(side-condition (not-free-in x e))
+     (neg-term-vector Δ V x Θ)
+     ------------------------------------
+     (neg-term-vector Δ (V ○) x (@ Θ e))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (pos-term Δlist)
+   [x Prop]
+   [x x]
+   [x (Π (x : Prop) Set)]
+   [x (Π (x : Set) (@ List x))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (neg-term Δlist)
+   [x Prop]
+   [x (Π (x : Prop) Set)]
+   [x (Π (y : (@ List x)) Nat)]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (pos-term-vector Δlist)
+   [· x hole]
+   [(· ⊕) x (@ hole (@ List x))]
+   [(· +) x (@ hole (@ List x))]
+   [(· -) x (@ hole (Π (y : (@ List x)) Nat))]
+   [(· ○) x (@ hole Nat)]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (neg-term-vector Δlist)
+   [· s hole]
+   [(· ⊕) x (@ hole (Π (y : (@ List x)) Nat))]
+   [(· +) x (@ hole (Π (y : (@ List x)) Nat))]
+   [(· -) x (@ hole (@ List x))]
+   [(· ○) x (@ hole Nat)]))
 
 (begin ;; strict positivity
 
