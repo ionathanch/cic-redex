@@ -41,7 +41,7 @@
   (U ::= (Type i) Set Prop)
   (S ::= r s p (^ S) ∞)
   (e t ::= c x d (λ (x : t) e) (@ e e) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
-  (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; unannotated type is a full type (with size ∞)
+  (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; TODO: decide if unannotated type is sugar for (D ∞) or (D °)
   (Γ ::= · (Γ (x : t)) (Γ (x = e : t)))
   (Δ ::= · (Δ (D : n V t Γ)))
 
@@ -1095,6 +1095,70 @@
    [(· +) x (@ hole (Π (y : (@ List x)) Nat))]
    [(· -) x (@ hole (@ List x))]
    [(· ○) x (@ hole Nat)]))
+
+(begin ;; strict positivity
+
+  (define-judgment-form cicL
+    #:mode (strict-positivity I I I)
+    #:contract (strict-positivity Δ D t)
+
+    [(side-condition (not-free-in D t))
+     --------------------------
+     (strict-positivity Δ D t)]
+
+    [(side-condition (not-free-in D Θ))
+     --------------------------------------
+     (strict-positivity Δ D (in-hole Θ (D ∞)))]
+
+    [(side-condition (not-free-in D t_1))
+     (strict-positivity Δ D t_2)
+     ------------------------------------------
+     (strict-positivity Δ D (Π (x : t_1) t_2))]
+
+    [(side-condition (Δ-in-dom Δ D_0))
+     (where V (Δ-ref-polarities Δ D_0))
+     (where Θ_p (take-parameters Δ D_0 Θ))
+     (where Θ_a (take-indicies   Δ D_0 Θ))
+     (side-condition (not-free-in D Θ_a))
+     (strict-positivity-vector Δ V D Θ_p)
+     ------------------------------------------
+     (strict-positivity Δ D (in-hole Θ (D_0 ∞)))])
+
+  (define-judgment-form cicL
+    #:mode (strict-positivity-vector I I I I)
+    #:contract (strict-positivity-vector Δ V D Θ)
+
+    [--------------------------------------
+     (strict-positivity-vector Δ · D hole)]
+
+    [(strict-positivity Δ D e)
+     (strict-positivity-vector Δ V D Θ)
+     ---------------------------------------------
+     (strict-positivity-vector Δ (V ⊕) D (@ Θ e))]
+
+    [(side-condition (not-free-in D e))
+     (strict-positivity-vector Δ V D Θ)
+     ---------------------------------------------
+     (strict-positivity-vector Δ (V _) D (@ Θ e))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (strict-positivity Δlist)
+   [Nat Prop]
+   [Nat (Nat ∞)]
+   [List (@ (List ∞) (Nat ∞))]
+   [Nat (Π (x : Set) (Nat ∞))]
+   [Nat (@ (List ∞) (Nat ∞))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (strict-positivity-vector Δlist)
+   [· Nat hole]
+   [(· ⊕) Nat (@ hole (@ (List ∞) (Nat ∞)))]
+   [(· +) List (@ hole (Nat ∞))]
+   [(· -) List (@ hole (Nat ∞))]
+   [(· ○) List (@ hole (Nat ∞))]
+   [((· ⊕) -) Nat (@ (@ hole (@ (List ∞) (Nat ∞))) Prop)]))
 
 (begin ;; strict positivity
 
