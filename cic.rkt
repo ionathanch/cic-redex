@@ -1357,36 +1357,36 @@
 
   ;; stage erasure to position terms
   (define-metafunction cicL
-    erase-to-position : Δ S e -> e
-    [(erase-to-position Δ S D)
+    erase-to-position : Δ s e -> e
+    [(erase-to-position Δ s D)
      (D °)
      (where #t (Δ-in-dom Δ D))]
-    [(erase-to-position Δ S_0 (D S_1))
-     ,(if (eq? (term S_0) (term (base S_1)))
+    [(erase-to-position Δ s (D S))
+     ,(if (eq? (term s) (term (base S)))
           (term (D *))
           (term (D °)))]
-    [(erase-to-position Δ S (λ (x : t) e))
+    [(erase-to-position Δ s (λ (x : t) e))
       (λ (x : t) e)
-      (where e (erase-to-position Δ S e))]
-    [(erase-to-position Δ S (@ e_1 e_2))
+      (where e (erase-to-position Δ s e))]
+    [(erase-to-position Δ s (@ e_1 e_2))
       (@ e_1 e_2)
-      (where e_1 (erase-to-position Δ S e_1))
-      (where e_2 (erase-to-position Δ S e_2))]
-    [(erase-to-position Δ S (Π (x : t_1) t_2))
+      (where e_1 (erase-to-position Δ s e_1))
+      (where e_2 (erase-to-position Δ s e_2))]
+    [(erase-to-position Δ s (Π (x : t_1) t_2))
       (Π (x : t_1) t_2)
-      (where t_1 (erase-to-position Δ S t_1))
-      (where t_2 (erase-to-position Δ S t_2))]
-    [(erase-to-position Δ S (let (x = e_1 : t) e_2))
+      (where t_1 (erase-to-position Δ s t_1))
+      (where t_2 (erase-to-position Δ s t_2))]
+    [(erase-to-position Δ s (let (x = e_1 : t) e_2))
       (let (x = e_1 : t) e_2)
-      (where e_1 (erase-to-position Δ S e_1))
-      (where e_2 (erase-to-position Δ S e_2))]
+      (where e_1 (erase-to-position Δ s e_1))
+      (where e_2 (erase-to-position Δ s e_2))]
     [(erase-to-position Δ (case e_1 e_2 (e_3 ...)))
       (case e_1 e_2 constr)
-      (where e_1 (erase-to-position Δ S e_1))
-      (where constr ,(map (lambda (e) (term (erase-to-position Δ S e))) (term (e_3 ...))))]
+      (where e_1 (erase-to-position Δ s e_1))
+      (where constr ,(map (lambda (e) (term (erase-to-position Δ s e))) (term (e_3 ...))))]
     [(erase-to-position Δ (fix f : t e))
       (fix f : t e)
-      (where e (erase-to-position Δ S e))]
+      (where e (erase-to-position Δ s e))]
     [(erase-to-position Δ e) e]))
 
 (begin ;; Γ defs
