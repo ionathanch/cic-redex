@@ -1096,6 +1096,45 @@
    [(· -) x (@ hole (@ List x))]
    [(· ○) x (@ hole Nat)]))
 
+(begin ;; positivity of contexts
+  ;; I don't think we need rules for let-contexts (i.e. (Γ (x = e : t)))
+
+  (define-judgment-form cicL
+    #:mode (pos-context I I I I)
+    #:contract (pos-context Δ Γ V (x ...))
+
+    [-----------------------
+     (pos-context Δ Γ · ())]
+
+    [(pos-term Δ x t)
+     (pos-context Δ Γ V (x_0 ...))
+     ----------------------------------------------
+     (pos-context Δ (Γ (y : t)) (V ⊕) (x_0 ... x))]
+
+    [(pos-term Δ x t)
+     (pos-context Δ Γ V (x_0 ...))
+     ----------------------------------------------
+     (pos-context Δ (Γ (y : t)) (V +) (x_0 ... x))]
+
+    [(neg-term Δ x t)
+     (pos-context Δ Γ V (x_0 ...))
+     ----------------------------------------------
+     (pos-context Δ (Γ (y : t)) (V -) (x_0 ... x))]
+
+    [(side-condition (not-free-in x t))
+     (pos-context Δ Γ V (x_0 ...))
+     ----------------------------------------------
+     (pos-context Δ (Γ (y : t)) (V ○) (x_0 ... x))]))
+
+(module+ test
+ (redex-judgment-holds-chk
+  (pos-context Δlist)
+  [· · ()]
+  [(· (y : (Π (y : Nat) (@ List x)))) (· ⊕) (x)]
+  [(· (y : (Π (y : Nat) (@ List x)))) (· +) (x)]
+  [(· (y : (Π (y : (@ List x)) Nat))) (· -) (x)]
+  [(· (y : Nat)) (· ○) (x)]))
+
 (begin ;; strict positivity
 
   (define-judgment-form cicL
