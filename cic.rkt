@@ -1251,7 +1251,7 @@
      (where V (Δ-ref-polarities Δ D))
      (where Θ_p (take-parameters Δ D Θ))
      (where Θ_a (take-indicies   Δ D Θ))
-     (side-condition (no-free-variables? Δ (in-hole (D S) Θ_a))) ;; need smth to plug the hole in
+     (side-condition (no-free-stage-vars (in-hole D Θ_a))) ;; need smth to plug the hole in
      (simple-vector Δ V Θ_p)
      ----------------------------- "s-ind"
      (simple Δ (in-hole Θ (D S)))])
@@ -1263,7 +1263,7 @@
     [------------------------- "sv-empty"
      (simple-vector Δ · hole)]
 
-    [(side-condition (no-free-variables? Δ t))
+    [(side-condition (no-free-stage-vars t))
      (simple-vector Δ V Θ)
      -------------------------------- "sv-inv"
      (simple-vector Δ (V ○) (@ Θ t))]
@@ -1423,66 +1423,47 @@
 ;; ------------------------------------------------------------------------
 ;; Vital meta-functions
 
-(begin ;; free variables
-  (define-metafunction cicL
-    free-variables : Δ e -> (x ...)
-    [(free-variables Δ (λ (x : t) e))
-     (x_t ... x_e ...)
-     (where (x_t ...) (free-variables Δ t))
-     (where (x_e ...) ,(remove* (list (term x)) (term (free-variables Δ e))))]
-
-    [(free-variables Δ (Π (x : t_0) t_1))
-     (x_t0 ... x_t1 ...)
-     (where (x_t0 ...) (free-variables Δ t_0))
-     (where (x_t1 ...) ,(remove* (list (term x)) (term (free-variables Δ t_1))))]
-
-    [(free-variables Δ (let (x = e_x : t) e))
-     (x_ex ... x_t ... x_e ...)
-     (where (x_ex ...) (free-variables Δ e_x))
-     (where (x_t  ...) (free-variables Δ t))
-     (where (x_e  ...) ,(remove* (list (term x)) (term (free-variables Δ e))))]
-
-    [(free-variables Δ (@ e_0 e_1))
-     (x_0 ... x_1 ...)
-     (where (x_0 ...) (free-variables Δ e_0))
-     (where (x_1 ...) (free-variables Δ e_1))]
-
-    [(free-variables Δ (case e_0 e_1 (e ...)))
-     (x_0 ... x_1 ... x_e ...)
-     (where (x_0 ...) (free-variables e_0))
-     (where (x_1 ...) (free-variables e_1))
-     (where (x_e ...) ,(apply append (map (lambda (e) (term (free-variables e))) (term (e ...)))))]
-
-    [(free-variables Δ (fix f : t e))
-     (x_t ... x_e ...)
-     (where (x_t ...) (free-variables Δ t))
-     (where (x_e ...) ,(remove* (list (term f)) (term (free-variables Δ e))))]
-
-    [(free-variables Δ x)
-     ,(if (not (or (term (Δ-in-dom Δ x))
-                   (term (Δ-in-constructor-dom Δ x))))
-          (term (x))
-          (term ()))]
-
-    [(free-variables Δ _) ()])
-
-  (define-metafunction cicL
-    no-free-variables? : Δ e -> #t or #f
-    [(no-free-variables? Δ e)
-     #t
-     (where () (free-variables Δ e))]
-    [(no-free-variables? _ _) #f]))
-
-(module+ test
-  (redex-chk
-    (no-free-variables? Δlist (λ (x : (Π (A : Set) (@ List A))) x)) #t))
-
 (begin ;; stages
   ;; the base of a stage
   (define-metafunction cicL
     base : S -> S
     [(base (^ S)) (base S)]
     [(base s) s])
+
+  ;; free stage variables
+  (define-metafunction cicL
+    no-free-stage-vars : e -> #t or #f
+    [(no-free-stage-vars (λ (x : t) e))
+     ,(and (term (no-free-stage-vars t))
+           (term (no-free-stage-vars e)))]
+
+    [(no-free-stage-vars (@ e_0 e_1))
+     ,(and (term (no-free-stage-vars e_0))
+           (term (no-free-stage-vars e_1)))]
+
+    [(no-free-stage-vars (Π (x : t_0) t_1))
+     ,(and (term (no-free-stage-vars t_0))
+           (term (no-free-stage-vars t_1)))]
+
+    [(no-free-stage-vars (let (x = e_0 : t) e_1))
+     ,(and (term (no-free-stage-vars e_0))
+           (term (no-free-stage-vars t))
+           (term (no-free-stage-vars e_1)))]
+
+    [(no-free-stage-vars (case e_0 e_1 (e ...)))
+     ,(and (term (no-free-stage-vars e_0))
+           (term (no-free-stage-vars e_1))
+           (andmap values (term ((no-free-stage-vars e) ...))))]
+
+    [(no-free-stage-vars (fix f : t e))
+     ,(and (term (no-free-stage-vars t))
+           (term (no-free-stage-vars e)))]
+
+    [(no-free-stage-vars (D S))
+     #f
+     (where s (base S))]
+
+    [(no-free-stage-vars _) #t])
 
   ;; stage erasure to bare terms
   (define-metafunction cicL
