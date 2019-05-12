@@ -1233,6 +1233,51 @@
    [Nat Nat]
    [Nat (Π (x : Nat) Nat)]))
 
+(begin ;; simple types
+
+  (define-judgment-form cicL
+    #:mode (simple I I)
+    #:contract (simple Δ t)
+
+    [(side-condition (no-free-variables? Δ t))
+     ------------- "s-empty"
+     (simple Δ t)]
+
+    [(simple Δ t_1) (simple Δ t_2)
+     ----------------------------- "s-prod"
+     (simple Δ (Π (x : t_1) t_2))]
+
+    [(side-condition (Δ-in-dom Δ D))
+     (where V (Δ-ref-polarities Δ D))
+     (where Θ_p (take-parameters Δ D Θ))
+     (where Θ_a (take-indicies   Δ D Θ))
+     (side-condition (no-free-variables? Δ (in-hole (D S) Θ_a))) ;; need smth to plug the hole in
+     (simple-vector Δ V Θ_p)
+     ----------------------------- "s-ind"
+     (simple Δ (in-hole Θ (D S)))])
+
+  (define-judgment-form cicL
+    #:mode (simple-vector I I I)
+    #:contract (simple-vector Δ V Θ)
+
+    [------------------------- "sv-empty"
+     (simple-vector Δ · hole)]
+
+    [(side-condition (no-free-variables? Δ t))
+     (simple-vector Δ V Θ)
+     -------------------------------- "sv-inv"
+     (simple-vector Δ (V ○) (@ Θ t))]
+
+    [(simple Δ t)
+     (simple-vector Δ V Θ)
+     -------------------------------- "sv-ninv"
+     (simple-vector Δ (V _) (@ Θ t))]))
+
+(module+ test
+  (redex-judgment-holds-chk
+   (simple Δlist)
+   [(Π (x : (@ (List s) (Nat s))) (Π (y : (Nat ∞)) (Π (z : (@ (List ∞) (Nat s))) (Nat ∞))))]))
+
 (begin ;; match aux
 
   ;; Can an inductive type D that lives in U_A be eliminated to some type that lives in U_B?
@@ -1377,6 +1422,60 @@
 
 ;; ------------------------------------------------------------------------
 ;; Vital meta-functions
+
+(begin ;; free variables
+  (define-metafunction cicL
+    free-variables : Δ e -> (x ...)
+    [(free-variables Δ (λ (x : t) e))
+     (x_t ... x_e ...)
+     (where (x_t ...) (free-variables Δ t))
+     (where (x_e ...) ,(remove* (list (term x)) (term (free-variables Δ e))))]
+
+    [(free-variables Δ (Π (x : t_0) t_1))
+     (x_t0 ... x_t1 ...)
+     (where (x_t0 ...) (free-variables Δ t_0))
+     (where (x_t1 ...) ,(remove* (list (term x)) (term (free-variables Δ t_1))))]
+
+    [(free-variables Δ (let (x = e_x : t) e))
+     (x_ex ... x_t ... x_e ...)
+     (where (x_ex ...) (free-variables Δ e_x))
+     (where (x_t  ...) (free-variables Δ t))
+     (where (x_e  ...) ,(remove* (list (term x)) (term (free-variables Δ e))))]
+
+    [(free-variables Δ (@ e_0 e_1))
+     (x_0 ... x_1 ...)
+     (where (x_0 ...) (free-variables Δ e_0))
+     (where (x_1 ...) (free-variables Δ e_1))]
+
+    [(free-variables Δ (case e_0 e_1 (e ...)))
+     (x_0 ... x_1 ... x_e ...)
+     (where (x_0 ...) (free-variables e_0))
+     (where (x_1 ...) (free-variables e_1))
+     (where (x_e ...) ,(apply append (map (lambda (e) (term (free-variables e))) (term (e ...)))))]
+
+    [(free-variables Δ (fix f : t e))
+     (x_t ... x_e ...)
+     (where (x_t ...) (free-variables Δ t))
+     (where (x_e ...) ,(remove* (list (term f)) (term (free-variables Δ e))))]
+
+    [(free-variables Δ x)
+     ,(if (not (or (term (Δ-in-dom Δ x))
+                   (term (Δ-in-constructor-dom Δ x))))
+          (term (x))
+          (term ()))]
+
+    [(free-variables Δ _) ()])
+
+  (define-metafunction cicL
+    no-free-variables? : Δ e -> #t or #f
+    [(no-free-variables? Δ e)
+     #t
+     (where () (free-variables Δ e))]
+    [(no-free-variables? _ _) #f]))
+
+(module+ test
+  (redex-chk
+    (no-free-variables? Δlist (λ (x : (Π (A : Set) (@ List A))) x)) #t))
 
 (begin ;; stages
   ;; the base of a stage
