@@ -530,6 +530,25 @@
      -------------------------------------------------------
      (valid-parameters Δ n (Π (x : t) t_0) (Π (y : t) t_1))])
 
+  (define-judgment-form cicL
+    #:mode (constructor-type I I)
+    #:contract (constructor-type Δ D t)
+
+    [-----------------------------------------
+     (constructor-type Δ D (in-hole Θ (D S)))] ;; I don't think it matters but it should be (D ∞)
+
+    [(side-condition (free-in x t_2))
+     (side-condition (not-free-in D t_1))
+     (constructor-type Δ D t_2)
+     ----------------------------------------- ;; Πx: T1. T2
+     (constructor-type Δ D (Π (x : t_1) t_2))]
+
+    [(side-condition (not-free-in x t_2))
+     (strict-positivity Δ D t_1)
+     (constructor-type Δ D t_2)
+     ----------------------------------------- ;; T1 -> T2
+     (constructor-type Δ D (Π (x : t_1) t_2))])
+
   ;; Holds when the type t is a valid type for a constructor of D
   (define-judgment-form cicL
     #:mode (valid-constructors I I)
