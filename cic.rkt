@@ -1712,19 +1712,7 @@
 
     [(where (D : _ _ t _) (snoc-env-ref Δ D))
      -------------------------------
-     (Δ-type-in Δ D t)]
-
-    [(where (D : _ _ t _) (snoc-env-ref Δ D))
-     -------------------------------
-     (Δ-type-in Δ (D S) t)]
-
-    [(where (D : _ _ t _) (snoc-env-ref Δ D))
-     -------------------------------
-     (Δ-type-in Δ (D *) t)]
-
-    [(where (D : _ _ t _) (snoc-env-ref Δ D))
-     -------------------------------
-     (Δ-type-in Δ (D °) t)])
+     (Δ-type-in Δ D t)])
 
   ;; Return the number of parameters for the inductive type D
   (define-metafunction cicL
