@@ -41,7 +41,7 @@
   (U ::= (Type i) Set Prop)
   (S ::= r s p (^ S) ∞)
   (e t ::= c x d (λ (x : t) e) (@ e e) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
-  (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; TODO: decide if unannotated type is sugar for (D ∞) or (D °)
+  (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; D == (D ∞)
   (Γ ::= · (Γ (x : t)) (Γ (x = e : t)))
   (Δ ::= · (Δ (D : n V t Γ)))
 
@@ -531,11 +531,14 @@
      (valid-parameters Δ n (Π (x : t) t_0) (Π (y : t) t_1))])
 
   (define-judgment-form cicL
-    #:mode (constructor-type I I)
+    #:mode (constructor-type I I I)
     #:contract (constructor-type Δ D t)
 
     [-----------------------------------------
-     (constructor-type Δ D (in-hole Θ (D S)))] ;; I don't think it matters but it should be (D ∞)
+     (constructor-type Δ D (in-hole Θ (D ∞)))]
+
+    [-----------------------------------------
+     (constructor-type Δ D (in-hole Θ D))]
 
     [(side-condition (free-in x t_2))
      (side-condition (not-free-in D t_1))
@@ -548,6 +551,28 @@
      (constructor-type Δ D t_2)
      ----------------------------------------- ;; T1 -> T2
      (constructor-type Δ D (Π (x : t_1) t_2))])
+
+  (define-judgment-form cicL
+    #:mode (valid-constructor I I)
+    #:contract (valid-constructor Δ c)
+
+    [;; variables
+     (where (D : n V (name t_D (in-hole Ξ_d t)) _) (Δ-ref-by-constructor Δ c))
+     (where (name t_c (in-hole Ξ_c (in-hole Θ _))) (Δ-ref-constructor-type Δ c))
+     (where (name params ((x_p : t_p) ...)) (Ξ-take Ξ_c n))
+     (where Ξ_i (Ξ-drop Ξ_c n))
+     (where (x_ni ...) (noninvariant-variables V params))
+     (where (x_sp ...) (strictly-positive-variables V params))
+     ;; clauses
+     (valid-parameters Δ n t_c t_D) ;; constructor has same parameters as inductive type
+     (type-infer Δ · t_c (Type k)) ;; I2 (maybe redundant, given I4?)
+     (constructor-type Δ D t_c) ;; I4
+     (side-condition (full-types-only t_c)) ;; I5
+     ;; I6
+     (side-condition ((not-free-in x_ni Θ) ...)) ;; I7
+     (strict-positivity Δ x_sp (in-hole Ξ_i Set)) ... ;; I9; use Set to plug the hole
+     ------------------------
+     (valid-constructor Δ c)])
 
   ;; Holds when the type t is a valid type for a constructor of D
   (define-judgment-form cicL
@@ -688,6 +713,10 @@
     [(Δ-type-in Δ D t) (wf Δ Γ)
      --------------------- "Ind"
      (type-infer Δ Γ D t)]
+
+    [(Δ-type-in Δ D t) (wf Δ Γ)
+     --------------------- "Ind-sized"
+     (type-infer Δ Γ (D S) t)]
 
     [(Δ-constr-in Δ c t) (wf Δ Γ)
      --------------------- "Constr"
@@ -1168,6 +1197,10 @@
      --------------------------------------
      (strict-positivity Δ D (in-hole Θ (D ∞)))]
 
+    [(side-condition (not-free-in D Θ))
+     --------------------------------------
+     (strict-positivity Δ D (in-hole Θ D))]
+
     [(side-condition (not-free-in D t_1))
      (strict-positivity Δ D t_2)
      ------------------------------------------
@@ -1523,6 +1556,41 @@
 
     [(no-free-stage-vars _) #t])
 
+  ;; inductive types annotated with ∞ only
+  (define-metafunction cicL
+    full-types-only : e -> #t or #f
+    [(full-types-only (λ (x : t) e))
+     ,(and (term (full-types-only t))
+           (term (full-types-only e)))]
+
+    [(full-types-only (@ e_0 e_1))
+     ,(and (term (full-types-only e_0))
+           (term (full-types-only e_1)))]
+
+    [(full-types-only (Π (x : t_0) t_1))
+     ,(and (term (full-types-only t_0))
+           (term (full-types-only t_1)))]
+
+    [(full-types-only (let (x = e_0 : t) e_1))
+     ,(and (term (full-types-only e_0))
+           (term (full-types-only t))
+           (term (full-types-only e_1)))]
+
+    [(full-types-only (case e_0 e_1 (e ...)))
+     ,(and (term (full-types-only e_0))
+           (term (full-types-only e_1))
+           (andmap values (term ((full-types-only e) ...))))]
+
+    [(full-types-only (fix f : t e))
+     ,(and (term (full-types-only t))
+           (term (full-types-only e)))]
+
+    [(full-types-only (D ∞)) #t]
+    [(full-types-only (D *)) #f]
+    [(full-types-only (D °)) #f]
+    [(full-types-only (D _)) #f]
+    [(full-types-only    _ ) #t])
+
   ;; stage erasure to bare terms
   (define-metafunction cicL
     erase-to-bare : Δ e -> e
@@ -1590,6 +1658,31 @@
       (fix f : t e)
       (where e (erase-to-position Δ s e))]
     [(erase-to-position Δ e) e]))
+
+(begin ;; V defs
+  ;; Get parameter variables where polarity is noninvariant (strictly positive, positive, or negative)
+  (define-metafunction cicL
+    noninvariant-variables : V ((x : t) ...) -> (x ...)
+    [(noninvariant-variables · hole) ()]
+
+    [(noninvariant-variables (V ○) ((x : t) ... _))
+     (noninvariant-variables V ((x : t) ...))]
+
+    [(noninvariant-variables (V _) ((x : t) ... (x_0 : t_0)))
+     (x_1 ... x_0)
+     (where (x_1 ...) (noninvariant-variables V ((x : t) ...)))])
+
+  ;; Get parameter variables where polarity is strictly positive
+  (define-metafunction cicL
+    strictly-positive-variables : V ((x : t) ...) -> (x ...)
+    [(strictly-positive-variables · hole) ()]
+
+    [(strictly-positive-variables (V ⊕) ((x : t) ... (x_0 : t_0)))
+     (x_1 ... x_0)
+     (where (x_1 ...) (strictly-positive-variables V ((x : t) ...)))]
+
+    [(strictly-positive-variables (V _) ((x : t) ...))
+     (strictly-positive-variables V ((x : t) ...))]))
 
 (begin ;; Γ defs
   ;; Make x : t ∈ Γ a little easier to use, prettier to render
@@ -1780,6 +1873,22 @@
     Ξ-length : Ξ -> n
     [(Ξ-length Ξ)
      ,(length (term (Ξ-flatten Ξ)))])
+
+  (define-metafunction cicL
+    Ξ-drop : Ξ_0 n_0 -> Ξ
+    #:pre ,(<= (term n_0) (term (Ξ-length Ξ_0)))
+    [(Ξ-drop Ξ 0)
+     Ξ]
+    [(Ξ-drop (Π _ Ξ) n)
+     (Ξ-drop Ξ ,(sub1 (term n)))])
+
+  (define-metafunction cicL
+    Ξ-take : Ξ_0 n_0 -> Ξ
+    #:pre ,(<= (term n_0) (term (Ξ-length Ξ_0)))
+    [(Ξ-take Ξ 0)
+     hole]
+    [(Ξ-take (Π (x : t) Ξ) n)
+     (Π (x : t) (Ξ-take Ξ ,(sub1 (term n))))])
 
   ;; Return the list of operands from Θ in reverse dependency order
   (define-metafunction cicL
