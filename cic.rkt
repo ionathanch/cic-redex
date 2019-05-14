@@ -431,6 +431,7 @@
   ;; is a subtype of ((D S') ps' as')
   ;; if S ⊑ S', ps ≼ ps' wrt V, and as ≡ as'
   ;; where V is the vector of polarities for D
+  ;; TODO: handle unannotated full types
   [(<=S S_0 S_1)
    (where Θ_0p (take-parameters Δ D Θ_0))
    (where Θ_1p (take-parameters Δ D Θ_1))
@@ -534,11 +535,9 @@
     #:mode (constructor-type I I I)
     #:contract (constructor-type Δ D t)
 
-    [-----------------------------------------
-     (constructor-type Δ D (in-hole Θ (D ∞)))]
-
-    [-----------------------------------------
-     (constructor-type Δ D (in-hole Θ D))]
+    [(full-type d D)
+     -----------------------------------------
+     (constructor-type Δ D (in-hole Θ d))]
 
     [(side-condition (free-in x t_2))
      (side-condition (not-free-in D t_1))
@@ -556,23 +555,7 @@
     #:mode (valid-constructor I I)
     #:contract (valid-constructor Δ (c : t))
 
-    [(where (in-hole Ξ_c (in-hole Θ D)) t_c)
-     (valid-parameters n t_c t_D) ;; constructor has same parameters as inductive type
-     (side-condition (full-types-only t_c)) ;; I5
-     (type-infer Δ (· (D : t_D)) t_c U_c) ;; I2 (maybe redundant, given I4?)
-     (constructor-type Δ D t_c) ;; I4
-
-     (where Ξ_p (Ξ-take-parameters Δ_0 c Ξ_c))
-     (where Ξ_i (Ξ-take-indices    Δ_0 c Ξ_c))
-     (where (x_ni ...) (pos-neg-variables V Ξ_p))
-     (where (x_sp ...) (strictly-positive-variables V Ξ_p))
-     ;; I6
-     (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
-     (strict-positivity-product Δ_0 x_sp Ξ_i) ... ;; I9
-     --------------------------------------------------------------------------------------
-     (valid-constructor (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ_D U_D)) _))) (c : t_c))]
-
-    [(where (in-hole Ξ_c (in-hole Θ D)) t_c)
+    [(where (in-hole Ξ_c (in-hole Θ d)) t_c) (full-type d D)
      (valid-parameters n t_c t_D) ;; constructor has same parameters as inductive type
      (side-condition (full-types-only t_c)) ;; I5
      (type-infer Δ (· (D : t_D)) t_c U_c) ;; I2 (maybe redundant, given I4?)
@@ -715,7 +698,7 @@
 
     [(Δ-type-in Δ D t) (wf Δ Γ)
      --------------------- "Ind"
-     (type-infer Δ Γ (D S) t)]
+     (type-infer Δ Γ (D _) t)]
 
     [(Δ-type-in Δ D t) (wf Δ Γ)
      --------------------- "Ind-full"
@@ -1196,36 +1179,25 @@
      --------------------------
      (strict-positivity Δ D t)]
 
-    [(side-condition (not-free-in D Θ))
+    [(full-type d D)
+     (side-condition (not-free-in D Θ))
      --------------------------------------
-     (strict-positivity Δ D (in-hole Θ (D ∞)))]
-
-    [(side-condition (not-free-in D Θ))
-     --------------------------------------
-     (strict-positivity Δ D (in-hole Θ D))]
+     (strict-positivity Δ D (in-hole Θ d))]
 
     [(side-condition (not-free-in D t_1))
      (strict-positivity Δ D t_2)
      ------------------------------------------
      (strict-positivity Δ D (Π (x : t_1) t_2))]
 
-    [(side-condition (Δ-in-dom Δ D_0))
+    [(full-type d D_0)
+     (side-condition (Δ-in-dom Δ D_0))
      (where V (Δ-ref-polarities Δ D_0))
      (where Θ_p (take-parameters Δ D_0 Θ))
      (where Θ_a (take-indicies   Δ D_0 Θ))
      (side-condition (not-free-in D Θ_a))
      (strict-positivity-vector Δ V D Θ_p)
      ------------------------------------------
-     (strict-positivity Δ D (in-hole Θ (D_0 ∞)))]
-
-    [(side-condition (Δ-in-dom Δ D_0))
-     (where V (Δ-ref-polarities Δ D_0))
-     (where Θ_p (take-parameters Δ D_0 Θ))
-     (where Θ_a (take-indicies   Δ D_0 Θ))
-     (side-condition (not-free-in D Θ_a))
-     (strict-positivity-vector Δ V D Θ_p)
-     ------------------------------------------
-     (strict-positivity Δ D (in-hole Θ D_0))])
+     (strict-positivity Δ D (in-hole Θ d))])
 
   (define-judgment-form cicL
     #:mode (strict-positivity-vector I I I I)
@@ -1501,6 +1473,8 @@
      ,(and (term (no-free-stage-vars t))
            (term (no-free-stage-vars e)))]
 
+    [(no-free-stage-vars (D ∞)) #t]
+
     [(no-free-stage-vars (D S))
      #f
      (where s (base S))]
@@ -1582,6 +1556,7 @@
     [(erase-to-position Δ s D)
      (D °)
      (where #t (Δ-in-dom Δ D))]
+    [(erase-to-position Δ s (D ∞)) (D °)]
     [(erase-to-position Δ s (D S))
      ,(if (eq? (term s) (term (base S)))
           (term (D *))
@@ -1608,7 +1583,17 @@
     [(erase-to-position Δ (fix f : t e))
       (fix f : t e)
       (where e (erase-to-position Δ s e))]
-    [(erase-to-position Δ e) e]))
+    [(erase-to-position Δ e) e])
+
+  (define-judgment-form cicL
+    #:mode (full-type I O)
+    #:contract (full-type d D)
+
+    [----------------
+     (full-type D D)]
+
+    [--------------------
+     (full-type (D ∞) D)]))
 
 (begin ;; V defs
   ;; Get parameter variables where polarity is noninvariant (strictly positive, positive, or negative)
