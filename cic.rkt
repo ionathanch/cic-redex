@@ -558,19 +558,37 @@
 
     [;; variables
      (where (D : n V (name t_D (in-hole Ξ_d t)) _) (Δ-ref-by-constructor Δ c))
-     (where (name t_c (in-hole Ξ_c (in-hole Θ _))) (Δ-ref-constructor-type Δ c))
-     (where (name params ((x_p : t_p) ...)) (Ξ-take Ξ_c n))
-     (where Ξ_i (Ξ-drop Ξ_c n))
-     (where (x_ni ...) (noninvariant-variables V params))
-     (where (x_sp ...) (strictly-positive-variables V params))
+     (where (name t_c (in-hole Ξ_c (in-hole Θ (D _)))) (Δ-ref-constructor-type Δ c))
+     (where Ξ_p (Ξ-take-parameters Δ c Ξ_c))
+     (where Ξ_i (Ξ-take-indices    Δ c Ξ_c))
+     (where (x_ni ...) (pos-neg-variables V Ξ_p))
+     (where (x_sp ...) (strictly-positive-variables V Ξ_p))
      ;; clauses
      (valid-parameters Δ n t_c t_D) ;; constructor has same parameters as inductive type
-     (type-infer Δ · t_c (Type k)) ;; I2 (maybe redundant, given I4?)
+     (type-infer Δ · t_c U) ;; I2 (maybe redundant, given I4?)
      (constructor-type Δ D t_c) ;; I4
      (side-condition (full-types-only t_c)) ;; I5
      ;; I6
-     (side-condition ((not-free-in x_ni Θ) ...)) ;; I7
-     (strict-positivity Δ x_sp (in-hole Ξ_i Set)) ... ;; I9; use Set to plug the hole
+     (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
+     (strict-positivity-product Δ x_sp Ξ_i) ... ;; I9
+     ------------------------
+     (valid-constructor Δ c)]
+
+    [;; variables
+     (where (D : n V (name t_D (in-hole Ξ_d t)) _) (Δ-ref-by-constructor Δ c))
+     (where (name t_c (in-hole Ξ_c (in-hole Θ D))) (Δ-ref-constructor-type Δ c))
+     (where Ξ_p (Ξ-take-parameters Δ c Ξ_c))
+     (where Ξ_i (Ξ-take-indices    Δ c Ξ_c))
+     (where (x_ni ...) (pos-neg-variables V Ξ_p))
+     (where (x_sp ...) (strictly-positive-variables V Ξ_p))
+     ;; clauses
+     (valid-parameters Δ n t_c t_D) ;; constructor has same parameters as inductive type
+     (type-infer Δ · t_c U) ;; I2 (maybe redundant, given I4?)
+     (constructor-type Δ D t_c) ;; I4
+     (side-condition (full-types-only t_c)) ;; I5
+     ;; I6
+     (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
+     (strict-positivity-product Δ x_sp Ξ_i) ... ;; I9
      ------------------------
      (valid-constructor Δ c)])
 
@@ -628,6 +646,16 @@
      (wf (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ U)) Γ_c))) ·)]))
 
 (module+ test
+  (redex-judgment-holds-chk
+   (valid-constructor Δlist)
+   [tt]
+   [true]
+   [false]
+   [z]
+   [s]
+   [nil]
+   [cons])
+
   (redex-judgment-holds-chk
    (valid-constructors Δ01)
    [(· (tt : Unit))])
@@ -1213,7 +1241,16 @@
      (side-condition (not-free-in D Θ_a))
      (strict-positivity-vector Δ V D Θ_p)
      ------------------------------------------
-     (strict-positivity Δ D (in-hole Θ (D_0 ∞)))])
+     (strict-positivity Δ D (in-hole Θ (D_0 ∞)))]
+
+    [(side-condition (Δ-in-dom Δ D_0))
+     (where V (Δ-ref-polarities Δ D_0))
+     (where Θ_p (take-parameters Δ D_0 Θ))
+     (where Θ_a (take-indicies   Δ D_0 Θ))
+     (side-condition (not-free-in D Θ_a))
+     (strict-positivity-vector Δ V D Θ_p)
+     ------------------------------------------
+     (strict-positivity Δ D (in-hole Θ D_0))])
 
   (define-judgment-form cicL
     #:mode (strict-positivity-vector I I I I)
@@ -1230,7 +1267,19 @@
     [(side-condition (not-free-in D e))
      (strict-positivity-vector Δ V D Θ)
      ---------------------------------------------
-     (strict-positivity-vector Δ (V _) D (@ Θ e))]))
+     (strict-positivity-vector Δ (V _) D (@ Θ e))])
+
+  (define-judgment-form cicL
+    #:mode (strict-positivity-product I I I)
+    #:contract (strict-positivity-product Δ x Ξ)
+
+    [-------------------------------------
+     (strict-positivity-product Δ x hole)]
+
+    [(strict-positivity Δ x t)
+     (strict-positivity-product Δ x Ξ)
+     ----------------------------------------------
+     (strict-positivity-product Δ x (Π (_ : t) Ξ))]))
 
 (module+ test
   (redex-judgment-holds-chk
@@ -1662,27 +1711,30 @@
 (begin ;; V defs
   ;; Get parameter variables where polarity is noninvariant (strictly positive, positive, or negative)
   (define-metafunction cicL
-    noninvariant-variables : V ((x : t) ...) -> (x ...)
-    [(noninvariant-variables · hole) ()]
+    pos-neg-variables : V Ξ -> (x ...)
+    [(pos-neg-variables · hole) ()]
 
-    [(noninvariant-variables (V ○) ((x : t) ... _))
-     (noninvariant-variables V ((x : t) ...))]
+    [(pos-neg-variables (V ○) (in-hole Ξ (Π (_ : _) hole)))
+     (pos-neg-variables V Ξ)]
 
-    [(noninvariant-variables (V _) ((x : t) ... (x_0 : t_0)))
-     (x_1 ... x_0)
-     (where (x_1 ...) (noninvariant-variables V ((x : t) ...)))])
+    [(pos-neg-variables (V ⊕) (in-hole Ξ (Π (_ : _) hole)))
+     (pos-neg-variables V Ξ)]
+
+    [(pos-neg-variables (V _) (in-hole Ξ (Π (x : _) hole)))
+     (x_0 ... x)
+     (where (x_0 ...) (pos-neg-variables V Ξ))])
 
   ;; Get parameter variables where polarity is strictly positive
   (define-metafunction cicL
-    strictly-positive-variables : V ((x : t) ...) -> (x ...)
+    strictly-positive-variables : V Ξ -> (x ...)
     [(strictly-positive-variables · hole) ()]
 
-    [(strictly-positive-variables (V ⊕) ((x : t) ... (x_0 : t_0)))
-     (x_1 ... x_0)
-     (where (x_1 ...) (strictly-positive-variables V ((x : t) ...)))]
+    [(strictly-positive-variables (V ⊕) (in-hole Ξ (Π (x : _) hole)))
+     (x_0 ... x)
+     (where (x_0 ...) (strictly-positive-variables V Ξ))]
 
-    [(strictly-positive-variables (V _) ((x : t) ...))
-     (strictly-positive-variables V ((x : t) ...))]))
+    [(strictly-positive-variables (V _) (in-hole Ξ (Π (_ : _) hole)))
+     (strictly-positive-variables V Ξ)]))
 
 (begin ;; Γ defs
   ;; Make x : t ∈ Γ a little easier to use, prettier to render
@@ -1832,6 +1884,26 @@
     #:pre (Δ-in-dom Δ_0 D_0)
     [(take-parameters Δ D Θ)
      (Θ-take Θ n)
+     (where n (Δ-ref-parameter-count Δ D))])
+
+  (define-metafunction cicL
+    Ξ-take-indices : Δ c Ξ -> Ξ
+    [(Ξ-take-indices Δ c Ξ)
+     (Ξ-drop Ξ n)
+     (judgment-holds (Δ-constr-in Δ c t))
+     (where n (Δ-constructor-ref-parameter-count Δ c))]
+    [(Ξ-take-indices Δ D Ξ)
+     (Θ-drop Ξ n)
+     (where n (Δ-ref-parameter-count Δ D))])
+
+  (define-metafunction cicL
+    Ξ-take-parameters : Δ c Ξ -> Ξ
+    [(Ξ-take-parameters Δ c Ξ)
+     (Ξ-take Ξ n)
+     (judgment-holds (Δ-constr-in Δ c t))
+     (where n (Δ-constructor-ref-parameter-count Δ c))]
+    [(Ξ-take-parameters Δ D Ξ)
+     (Ξ-take Θ n)
      (where n (Δ-ref-parameter-count Δ D))]))
 
 (begin ;; aux defs
