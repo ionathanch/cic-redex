@@ -698,11 +698,13 @@
 
     [(type-infer Δ (Γ (x : t_0)) e t)
      (type-infer Δ Γ (Π (x : t_0) t) U)
+     (side-condition (no-free-stage-vars e))
      ------------------------------------------------- "Lam"
      (type-infer Δ Γ (λ (x : t_0) e) (Π (x : t_0) t))]
 
     [(type-infer Δ Γ e_0 (Π (x : t_1) t))
      (type-check Δ Γ e_1 t_1)
+     (side-condition (no-free-stage-vars e_1))
      -------------------------------------------------- "App"
      (type-infer Δ Γ (@ e_0 e_1) (substitute t x e_1))]
 
@@ -713,11 +715,11 @@
 
     [(Δ-type-in Δ D t) (wf Δ Γ)
      --------------------- "Ind"
-     (type-infer Δ Γ D t)]
+     (type-infer Δ Γ (D S) t)]
 
     [(Δ-type-in Δ D t) (wf Δ Γ)
-     --------------------- "Ind-sized"
-     (type-infer Δ Γ (D S) t)]
+     --------------------- "Ind-full"
+     (type-infer Δ Γ D t)]
 
     [(Δ-constr-in Δ c t) (wf Δ Γ)
      --------------------- "Constr"
@@ -1279,7 +1281,7 @@
     #:mode (simple I I)
     #:contract (simple Δ t)
 
-    [(side-condition (no-free-variables? Δ t))
+    [(side-condition (no-free-stage-vars t))
      ------------- "s-empty"
      (simple Δ t)]
 
