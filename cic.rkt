@@ -520,15 +520,15 @@
      (valid-polarities n (V _))])
 
   (define-judgment-form cicL
-    #:mode (valid-parameters I I I I)
-    #:contract (valid-parameters Δ n t t)
+    #:mode (valid-parameters I I I)
+    #:contract (valid-parameters n t t)
 
     [-------------------------------
-     (valid-parameters Δ 0 t_0 t_1)]
+     (valid-parameters 0 t_0 t_1)]
 
-    [(valid-parameters Δ ,(sub1 (term n)) t_0 t_1)
+    [(valid-parameters ,(sub1 (term n)) t_0 t_1)
      -------------------------------------------------------
-     (valid-parameters Δ n (Π (x : t) t_0) (Π (y : t) t_1))])
+     (valid-parameters n (Π (x : t) t_0) (Π (y : t) t_1))])
 
   (define-judgment-form cicL
     #:mode (constructor-type I I I)
@@ -554,61 +554,39 @@
 
   (define-judgment-form cicL
     #:mode (valid-constructor I I)
-    #:contract (valid-constructor Δ c)
+    #:contract (valid-constructor Δ (c : t))
 
-    [;; variables
-     (where (D : n V (name t_D (in-hole Ξ_d t)) _) (Δ-ref-by-constructor Δ c))
-     (where (name t_c (in-hole Ξ_c (in-hole Θ (D _)))) (Δ-ref-constructor-type Δ c))
-     (where Ξ_p (Ξ-take-parameters Δ c Ξ_c))
-     (where Ξ_i (Ξ-take-indices    Δ c Ξ_c))
+    [(where (in-hole Ξ_c (in-hole Θ D)) t_c)
+     (valid-parameters n t_c t_D) ;; constructor has same parameters as inductive type
+     (side-condition (full-types-only t_c)) ;; I5
+     (type-infer Δ (· (D : t_D)) t_c U_c) ;; I2 (maybe redundant, given I4?)
+     (constructor-type Δ D t_c) ;; I4
+
+     (where Ξ_p (Ξ-take-parameters Δ_0 c Ξ_c))
+     (where Ξ_i (Ξ-take-indices    Δ_0 c Ξ_c))
      (where (x_ni ...) (pos-neg-variables V Ξ_p))
      (where (x_sp ...) (strictly-positive-variables V Ξ_p))
-     ;; clauses
-     (valid-parameters Δ n t_c t_D) ;; constructor has same parameters as inductive type
-     (type-infer Δ · t_c U) ;; I2 (maybe redundant, given I4?)
-     (constructor-type Δ D t_c) ;; I4
-     (side-condition (full-types-only t_c)) ;; I5
      ;; I6
      (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
-     (strict-positivity-product Δ x_sp Ξ_i) ... ;; I9
-     ------------------------
-     (valid-constructor Δ c)]
+     (strict-positivity-product Δ_0 x_sp Ξ_i) ... ;; I9
+     --------------------------------------------------------------------------------------
+     (valid-constructor (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ_D U_D)) _))) (c : t_c))]
 
-    [;; variables
-     (where (D : n V (name t_D (in-hole Ξ_d t)) _) (Δ-ref-by-constructor Δ c))
-     (where (name t_c (in-hole Ξ_c (in-hole Θ D))) (Δ-ref-constructor-type Δ c))
-     (where Ξ_p (Ξ-take-parameters Δ c Ξ_c))
-     (where Ξ_i (Ξ-take-indices    Δ c Ξ_c))
+    [(where (in-hole Ξ_c (in-hole Θ D)) t_c)
+     (valid-parameters n t_c t_D) ;; constructor has same parameters as inductive type
+     (side-condition (full-types-only t_c)) ;; I5
+     (type-infer Δ (· (D : t_D)) t_c U_c) ;; I2 (maybe redundant, given I4?)
+     (constructor-type Δ D t_c) ;; I4
+     ;; Positivity conditions
+     (where Ξ_p (Ξ-take-parameters Δ_0 c Ξ_c))
+     (where Ξ_i (Ξ-take-indices    Δ_0 c Ξ_c))
      (where (x_ni ...) (pos-neg-variables V Ξ_p))
      (where (x_sp ...) (strictly-positive-variables V Ξ_p))
-     ;; clauses
-     (valid-parameters Δ n t_c t_D) ;; constructor has same parameters as inductive type
-     (type-infer Δ · t_c U) ;; I2 (maybe redundant, given I4?)
-     (constructor-type Δ D t_c) ;; I4
-     (side-condition (full-types-only t_c)) ;; I5
      ;; I6
      (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
-     (strict-positivity-product Δ x_sp Ξ_i) ... ;; I9
-     ------------------------
-     (valid-constructor Δ c)])
-
-  ;; Holds when the type t is a valid type for a constructor of D
-  (define-judgment-form cicL
-    #:mode (valid-constructors I I)
-    #:contract (valid-constructors (Δ (D : n V t Γ)) Γ)
-
-    [------------------------- "VC-Empty"
-     (valid-constructors Δ ·)]
-
-    [;; constructor's type must return the inductive type D
-     (where (in-hole Ξ (in-hole Θ D)) t)
-     ;; First n arguments (parameters) of the constructor must match those of the inductive
-     (valid-parameters Δ n t t_D)
-     (strict-positivity-cond Δ_0 (· (D : t_D)) D t)
-     (type-infer Δ (· (D : t_D)) t U)
-     (valid-constructors Δ_0 Γ_c)
-     -----------------------------------------------------------------"VC-C"
-     (valid-constructors (name Δ_0 (Δ (D : n _ t_D _))) (Γ_c (c : t)))])
+     (strict-positivity-product Δ_0 x_sp Ξ_i) ... ;; I9
+     --------------------------------------------------------------------------------------
+     (valid-constructor (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ_D U_D)) _))) (c : t_c))])
 
   ;; Under global declarations Δ, is the term environment well-formed?
   (define-judgment-form cicL
@@ -629,36 +607,31 @@
      ----------------------- "W-Local-Def"
      (wf Δ (Γ (x = e : t)))]
 
-    ;; NB: Not quite as specified:
-    ;; * valid-constructors loops over constructors, rather than precomputing environments and using ... notation
-    ;;   Primarily this is because ... notation makes checking the result type of each constructor
-    ;;   awkward, but also ... notation makes random testing harder.
-    ;; * check t_D directly rather than splitting parameter telescope manually.
-    ;; * Γ must be empty, to guide search
     [(wf Δ ·)
      (where #f (Δ-in-dom Δ D))
-     (where (c_i ...) (Δ-ref-constructors Δ_0 D))
+     (where ((c_i : t_i) ...) (Δ-ref-constructor-map Δ_0 D))
      (where (c_!_0 ...) (c_i ...)) ; all constructors unique
-     (type-infer Δ · t_D U_D)
-     (valid-constructors Δ_0 Γ_c)
      (valid-polarities n V)
-     ---------------------------------------------------------- "W-Ind"
-     (wf (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ U)) Γ_c))) ·)]))
+     (side-condition (full-types-only t)) ;; I5
+     (type-infer Δ · t U_D) ;; I1
+     (valid-constructor Δ_0 (c_i : t_i)) ...
+     ;; Positivity conditions
+     (where Ξ_p (Ξ-take-parameters Δ_0 D Ξ))
+     (where Ξ_i (Ξ-take-indices    Δ_0 D Ξ))
+     ;; I8
+     --------------------------------------------------------- "W-Ind"
+     (wf (name Δ_0 (Δ (D : n V (name t (in-hole Ξ U)) _))) ·)])) ;; I3
 
 (module+ test
   (redex-judgment-holds-chk
-   (valid-constructor Δlist)
-   [tt]
-   [true]
-   [false]
-   [z]
-   [s]
-   [nil]
-   [cons])
-
-  (redex-judgment-holds-chk
-   (valid-constructors Δ01)
-   [(· (tt : Unit))])
+   valid-constructor
+   [Δ01 (tt : Unit)]
+   [Δb (true : Bool)]
+   [Δb (false : Bool)]
+   [Δnb (z : Nat)]
+   [Δnb (s : (Π (x : Nat) Nat))]
+   [Δlist (nil : (Π (A : Set) (@ List A)))]
+   [Δlist (cons : (-> (A : Set) (a : A) (ls : (@ List A)) (@ List A)))])
 
   (redex-relation-chk
    wf
@@ -1300,79 +1273,6 @@
    [(· ○) List (@ hole (Nat ∞))]
    [((· ⊕) -) Nat (@ (@ hole (@ (List ∞) (Nat ∞))) Prop)]))
 
-(begin ;; strict positivity
-
-  ;; t satisfied the strict positivity condition for D
-  ;; translated from https://coq.inria.fr/doc/Reference-Manual006.html#Cic-inductive-definitions
-  (define-judgment-form cicL
-    #:mode (strict-positivity-cond I I I I)
-    #:contract (strict-positivity-cond Δ Γ D t)
-
-    [(side-condition (not-free-in D Θ))
-     --------------------------------------------- "SP-App"
-     (strict-positivity-cond Δ Γ D (in-hole Θ D))]
-
-    [(occurs-strictly-positively Δ Γ D t_0)
-     (strict-positivity-cond Δ Γ D t_1)
-     ------------------------------------------------- "SP-Π"
-     (strict-positivity-cond Δ Γ D (Π (x : t_0) t_1))])
-
-  ;; D occurs strictly positively in t
-  (define-judgment-form cicL
-    #:mode (occurs-strictly-positively I I I I)
-    #:contract (occurs-strictly-positively Δ Γ D t)
-
-    [(side-condition (not-free-in D t))
-     ------------------------------------- "OSP-NotIn"
-     (occurs-strictly-positively Δ Γ D t)]
-
-    [(normalize Δ Γ t (in-hole Θ D))
-     (side-condition (not-free-in D Θ))
-     ------------------------------------- "OSP-NotArg"
-     (occurs-strictly-positively Δ Γ D t)]
-
-    [(normalize Δ Γ t (Π (x : t_0) t_1))
-     (side-condition (not-free-in D t_0))
-     (occurs-strictly-positively Δ Γ D t_1)
-     ------------------------------------- "OSP-Π"
-     (occurs-strictly-positively Δ Γ D t)]
-
-    [(normalize Δ Γ t (in-hole Θ D_i))
-     (where (D_!_0 D_!_0) (D D_i)) ;; D_i is a different inductive type
-     (side-condition (Δ-in-dom Δ D_i))
-     (where n (Δ-ref-parameter-count Δ D_i))
-     ;; D not free in the index arguments of D_i
-     (side-condition (not-free-in D (Θ-drop Θ n)))
-     ;; Instantiated types of the constructors for D_i satisfy the nested positivity condition for D
-     (where Θ_p (Θ-take Θ n))
-     (where ((c : t_c) ...) (Δ-ref-constructor-map Δ D_i))
-     (nested-positivity-condition Δ Γ D D_i (instantiate t_c Θ_p)) ...
-     ------------------------------------- "OSP-Ind"
-     (occurs-strictly-positively Δ Γ D t)])
-
-  ;; The type t of a constructor for D_i satisfied the nested positivity condition for D
-  (define-judgment-form cicL
-    #:mode (nested-positivity-condition I I I I I)
-    #:contract (nested-positivity-condition Δ Γ D D_i t)
-
-    [(side-condition (Δ-in-dom Δ D_i))
-     (where n (Δ-ref-parameter-count Δ D_i))
-     (side-condition (not-free-in D (Θ-drop Θ n)))
-     -------------------------------------------------------- "NPC-App"
-     (nested-positivity-condition Δ Γ D D_i (in-hole Θ D_i))]
-
-    [(occurs-strictly-positively Δ Γ D t_0)
-     (nested-positivity-condition Δ Γ D D_i t_1)
-     ---------------------------------------------------------- "NPC-Π"
-     (nested-positivity-condition Δ Γ D D_i (Π (x : t_0) t_1))]))
-
-(module+ test
-  (redex-judgment-holds-chk
-   (strict-positivity-cond Δnb ·)
-   [Bool Bool]
-   [Nat Nat]
-   [Nat (Π (x : Nat) Nat)]))
-
 (begin ;; simple types
 
   (define-judgment-form cicL
@@ -1893,7 +1793,8 @@
      (judgment-holds (Δ-constr-in Δ c t))
      (where n (Δ-constructor-ref-parameter-count Δ c))]
     [(Ξ-take-indices Δ D Ξ)
-     (Θ-drop Ξ n)
+     (Ξ-drop Ξ n)
+     (where #t (Δ-in-dom Δ D))
      (where n (Δ-ref-parameter-count Δ D))])
 
   (define-metafunction cicL
@@ -1903,7 +1804,8 @@
      (judgment-holds (Δ-constr-in Δ c t))
      (where n (Δ-constructor-ref-parameter-count Δ c))]
     [(Ξ-take-parameters Δ D Ξ)
-     (Ξ-take Θ n)
+     (Ξ-take Ξ n)
+     (where #t (Δ-in-dom Δ D))
      (where n (Δ-ref-parameter-count Δ D))]))
 
 (begin ;; aux defs
