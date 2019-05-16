@@ -696,13 +696,18 @@
      ------------------------------------------------------------------ "Let"
      (type-infer Δ Γ (let (x = e : t) e_body) (substitute t_body x e))]
 
-    [(Δ-type-in Δ D t) (wf Δ Γ)
-     --------------------- "Ind"
-     (type-infer Δ Γ (D _) t)]
+    #;[(ind-type d D)
+     (side-condition (Δ-in-dom Δ D))
+     (Δ-type-in Δ D t_D)
+     (where D_0 (free-variable (Δ Γ) D))
+     (type-infer Δ (Γ (D_0 : t_D)) (in-hole Θ D_0) t) ;; Treat inductive type as a normal function
+     (simple Δ ind)
+     --------------------------------------------
+     (type-infer Δ Γ (name ind (in-hole Θ d)) t)]
 
-    [(Δ-type-in Δ D t) (wf Δ Γ)
-     --------------------- "Ind-full"
-     (type-infer Δ Γ D t)]
+    [(ind-type d D) (Δ-type-in Δ D t) (wf Δ Γ)
+     --------------------- "Ind"
+     (type-infer Δ Γ d t)]
 
     [(Δ-constr-in Δ c t) (wf Δ Γ)
      --------------------- "Constr"
@@ -881,10 +886,10 @@
      (pos-stage Δ s (Π (x : t_0) t_1))]
 
     [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_a (take-indicies   Δ D Θ))
+     (where Θ_i (take-indicies   Δ D Θ))
      (where V (Δ-ref-polarities Δ D))
      (pos-stage-vector Δ V s Θ_p)
-     (side-condition (not-free-in s Θ_a))
+     (side-condition (not-free-in s Θ_i))
      ----------------------------------
      (pos-stage Δ s (in-hole Θ (D S)))])
 
@@ -902,10 +907,10 @@
 
     [(side-condition ,(not (eq? (term (bare S)) (term s))))
      (where Θ_p (take-parameters Δ D Θ))
-     (where Θ_a (take-indicies   Δ D Θ))
+     (where Θ_i (take-indicies   Δ D Θ))
      (where V (Δ-ref-polarities Δ D))
      (neg-stage-vector Δ V s Θ_p)
-     (side-condition (not-free-in s Θ_a))
+     (side-condition (not-free-in s Θ_i))
      ----------------------------------
      (neg-stage Δ s (in-hole Θ (D S)))])
 
@@ -1016,10 +1021,10 @@
      (pos-term Δ x (Π (x : t_0) t_1))]
 
     [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_a (take-indicies   Δ D Θ))
+     (where Θ_i (take-indicies   Δ D Θ))
      (where V (Δ-ref-polarities Δ D))
      (pos-term-vector Δ V x Θ_p)
-     (side-condition (not-free-in x Θ_a))
+     (side-condition (not-free-in x Θ_i))
      ----------------------------------
      (pos-term Δ x (in-hole Θ (D S)))])
 
@@ -1036,10 +1041,10 @@
      (neg-term Δ x (Π (y : t_0) t_1))]
 
     [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_a (take-indicies   Δ D Θ))
+     (where Θ_i (take-indicies   Δ D Θ))
      (where V (Δ-ref-polarities Δ D))
      (neg-term-vector Δ V x Θ_p)
-     (side-condition (not-free-in x Θ_a))
+     (side-condition (not-free-in x Θ_i))
      ----------------------------------
      (neg-term Δ x (in-hole Θ (D S)))])
 
@@ -1193,8 +1198,8 @@
      (side-condition (Δ-in-dom Δ D_0))
      (where V (Δ-ref-polarities Δ D_0))
      (where Θ_p (take-parameters Δ D_0 Θ))
-     (where Θ_a (take-indicies   Δ D_0 Θ))
-     (side-condition (not-free-in D Θ_a))
+     (where Θ_i (take-indicies   Δ D_0 Θ))
+     (side-condition (not-free-in D Θ_i))
      (strict-positivity-vector Δ V D Θ_p)
      ------------------------------------------
      (strict-positivity Δ D (in-hole Θ d))])
@@ -1261,14 +1266,15 @@
      ----------------------------- "s-prod"
      (simple Δ (Π (x : t_1) t_2))]
 
-    [(side-condition (Δ-in-dom Δ D))
+    [(ind-type d D)
+     (side-condition (Δ-in-dom Δ D))
      (where V (Δ-ref-polarities Δ D))
      (where Θ_p (take-parameters Δ D Θ))
-     (where Θ_a (take-indicies   Δ D Θ))
-     (side-condition (no-free-stage-vars (in-hole D Θ_a))) ;; need smth to plug the hole in
+     (where Θ_i (take-indicies   Δ D Θ))
+     (side-condition (no-free-stage-vars (in-hole D Θ_i))) ;; need smth to plug the hole in
      (simple-vector Δ V Θ_p)
      ----------------------------- "s-ind"
-     (simple Δ (in-hole Θ (D S)))])
+     (simple Δ (in-hole Θ d))])
 
   (define-judgment-form cicL
     #:mode (simple-vector I I I)
@@ -1593,7 +1599,17 @@
      (full-type D D)]
 
     [--------------------
-     (full-type (D ∞) D)]))
+     (full-type (D ∞) D)])
+
+  (define-judgment-form cicL
+    #:mode (ind-type I O)
+    #:contract (ind-type d D)
+
+    [---------------
+     (ind-type D D)]
+
+    [-------------------
+     (ind-type (D _) D)]))
 
 (begin ;; V defs
   ;; Get parameter variables where polarity is noninvariant (strictly positive, positive, or negative)
@@ -1796,6 +1812,14 @@
      (where n (Δ-ref-parameter-count Δ D))]))
 
 (begin ;; aux defs
+  (define-metafunction cicL
+    free-variable : (any ...) x -> x
+    [(free-variable (any) x)
+     ,(variable-not-in (term any) (term x))]
+    [(free-variable (any any_0 ...) x)
+     ,(variable-not-in (term any) (term x_0))
+     (where x_0 (free-variable (any_0 ...) x))])
+
   (define-metafunction cicL
     Ξ-build : (x : t) ... -> Ξ
     [(Ξ-build)
