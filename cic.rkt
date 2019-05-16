@@ -563,10 +563,11 @@
      ;; Positivity conditions
      (where Ξ_p (Ξ-take-parameters Δ_0 c Ξ_c))
      (where Ξ_i (Ξ-take-indices    Δ_0 c Ξ_c))
+     (where ((x_p : _) ...) (Ξ-flatten Ξ_p))
      (where (x_ni ...) (pos-neg-variables V Ξ_p))
      (where (x_sp ...) (strictly-positive-variables V Ξ_p))
-     ;; I6
-     (side-condition ,(andmap values (term ((not-free-in x_ni Θ) ...)))) ;; I7
+     (pos-context Δ_0 V (x_p ...) Ξ_c) ;; I6
+     (side-condition (all ((not-free-in x_ni Θ) ...))) ;; I7
      (strict-positivity-product Δ_0 x_sp Ξ_i) ... ;; I9
      --------------------------------------------------------------------------------------
      (valid-constructor (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ_D U_D)) _))) (c : t_c))])
@@ -601,7 +602,8 @@
      ;; Positivity conditions
      (where Ξ_p (Ξ-take-parameters Δ_0 D Ξ))
      (where Ξ_i (Ξ-take-indices    Δ_0 D Ξ))
-     ;; I8
+     (where ((x : _) ...) (Ξ-flatten Ξ_p))
+     (pos-context Δ_0 V (x ...) Ξ_i) ;; I8
      --------------------------------------------------------- "W-Ind"
      (wf (name Δ_0 (Δ (D : n V (name t (in-hole Ξ U)) _))) ·)])) ;; I3
 
@@ -1140,39 +1142,44 @@
 
   (define-judgment-form cicL
     #:mode (pos-context I I I I)
-    #:contract (pos-context Δ Γ V (x ...))
+    #:contract (pos-context Δ V (x ...) Ξ)
 
     [-----------------------
-     (pos-context Δ Γ · ())]
+     (pos-context Δ · () Ξ)]
 
-    [(pos-term Δ x t)
-     (pos-context Δ Γ V (x_0 ...))
-     ----------------------------------------------
-     (pos-context Δ (Γ (y : t)) (V ⊕) (x_0 ... x))]
+    [(where ((_ : t) ...) (Ξ-flatten Ξ))
+     (pos-term Δ x t) ...
+     (pos-context Δ V (x_0 ...) Ξ)
+     -------------------------------------
+     (pos-context Δ (V ⊕) (x_0 ... x) Ξ)]
 
-    [(pos-term Δ x t)
-     (pos-context Δ Γ V (x_0 ...))
-     ----------------------------------------------
-     (pos-context Δ (Γ (y : t)) (V +) (x_0 ... x))]
+    [(where ((_ : t) ...) (Ξ-flatten Ξ))
+     (pos-term Δ x t) ...
+     (pos-context Δ V (x_0 ...) Ξ)
+     -------------------------------------
+     (pos-context Δ (V +) (x_0 ... x) Ξ)]
 
-    [(neg-term Δ x t)
-     (pos-context Δ Γ V (x_0 ...))
-     ----------------------------------------------
-     (pos-context Δ (Γ (y : t)) (V -) (x_0 ... x))]
+    [(where ((_ : t) ...) (Ξ-flatten Ξ))
+     (neg-term Δ x t) ...
+     (pos-context Δ V (x_0 ...) Ξ)
+     -------------------------------------
+     (pos-context Δ (V -) (x_0 ... x) Ξ)]
 
-    [(side-condition (not-free-in x t))
-     (pos-context Δ Γ V (x_0 ...))
-     ----------------------------------------------
-     (pos-context Δ (Γ (y : t)) (V ○) (x_0 ... x))]))
+    [(where ((_ : t) ...) (Ξ-flatten Ξ))
+     (side-condition (all ((not-free-in x t) ...)))
+     (pos-context Δ V (x_0 ...) Ξ)
+     -------------------------------------
+     (pos-context Δ (V ○) (x_0 ... x) Ξ)]))
 
 (module+ test
  (redex-judgment-holds-chk
   (pos-context Δlist)
-  [· · ()]
-  [(· (y : (Π (y : Nat) (@ List x)))) (· ⊕) (x)]
-  [(· (y : (Π (y : Nat) (@ List x)))) (· +) (x)]
-  [(· (y : (Π (y : (@ List x)) Nat))) (· -) (x)]
-  [(· (y : Nat)) (· ○) (x)]))
+  [· () hole]
+  [(· ⊕) (x) (Π (y : (Π (y : Nat) (@ List x))) hole)]
+  [(· +) (x) (Π (y : (Π (y : Nat) (@ List x))) hole)]
+  [(· -) (x) (Π (y : (Π (y : (@ List x)) Nat)) hole)]
+  [(· ○) (x) (Π (y : Nat) hole)]
+  [((· +) ○) (x y) (Π (y : (Π (z : Nat) (@ List x))) hole)]))
 
 (begin ;; strict positivity
 
@@ -1473,7 +1480,7 @@
     [(no-free-stage-vars (case e_0 e_1 (e ...)))
      ,(and (term (no-free-stage-vars e_0))
            (term (no-free-stage-vars e_1))
-           (andmap values (term ((no-free-stage-vars e) ...))))]
+           (term (all ((no-free-stage-vars e) ...))))]
 
     [(no-free-stage-vars (fix f : t e))
      ,(and (term (no-free-stage-vars t))
@@ -1510,7 +1517,7 @@
     [(full-types-only (case e_0 e_1 (e ...)))
      ,(and (term (full-types-only e_0))
            (term (full-types-only e_1))
-           (andmap values (term ((full-types-only e) ...))))]
+           (term (all ((full-types-only e) ...))))]
 
     [(full-types-only (fix f : t e))
      ,(and (term (full-types-only t))

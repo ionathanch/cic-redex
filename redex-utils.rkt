@@ -28,6 +28,11 @@
   [(free-in any_x any)
    ,(not (term (not-free-in any_x any)))])
 
+(define-metafunction anyL
+  all : (any ...) -> #t or #f
+  [(all (any ...))
+   ,(andmap values (term (any ...)))])
+
 (define-judgment-form anyL
   #:mode (in I I)
   #:contract (in any (any ...))
