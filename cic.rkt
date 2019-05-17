@@ -164,17 +164,33 @@
 
   ;; ill-typed but well-formed
   (define-term subn-bad1
+    (fix f : (Π (x : Nat) Nat)
+         (λ (x : Nat)
+           (case x (λ (x : Nat) Nat) (z (λ (x : Nat) (@ f z)))))))
+
+  #;(define-term subn-bad1
     (fix f : (Π (x : (Nat *)) (Nat °))
          (λ (x : (Nat °))
            (case x (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) (@ f z)))))))
 
   (define-term subn-bad2
+    (fix f : (Π (x : Nat) Nat)
+         (λ (A : Set)
+           (λ (x : Nat)
+             (case x (λ (x : Nat) Nat) (z (λ (x : Nat) (@ f x))))))))
+
+  #;(define-term subn-bad2
     (fix f : (Π (x : (Nat *)) (Nat °))
          (λ (A : Set)
            (λ (x : (Nat °))
              (case x (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) (@ f x))))))))
 
   (define-term Ω
+    (fix f : (Π (x : Nat) Nat)
+         (λ (x : Nat)
+           (@ f x))))
+
+  #;(define-term Ω
     (fix f : (Π (x : (Nat *)) (Nat °))
          (λ (x : (Nat °))
            (@ f x))))
@@ -355,9 +371,12 @@
    (reduce Δnb · Nat) Nat
    (reduce · · (@ (λ (x : (Type 0)) x) z)) z
    (reduce · · f) f
-   (reduce · · (in-hole (@ hole z) (λ (x : (Nat °)) Nat))) Nat
-   (reduce Δnb · (case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x)))) z
-   (reduce Δlist · (case (@ nil Nat) (λ (ls : (@ (List (^ s)) Nat)) Bool) (true false))) true
+   (reduce · · (in-hole (@ hole z) (λ (x : Nat) Nat))) Nat
+   ;; #;(reduce · · (in-hole (@ hole z) (λ (x : (Nat °)) Nat))) Nat
+   (reduce Δnb · (case z (λ (x : Nat) Nat) (z (λ (x : Nat) x)))) z
+   ;; #;(reduce Δnb · (case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x)))) z
+   (reduce Δlist · (case (@ nil Nat) (λ (ls : (@ List Nat)) Bool) (true false))) true
+   ;; #;(reduce Δlist · (case (@ nil Nat) (λ (ls : (@ (List (^ s)) Nat)) Bool) (true false))) true
    (reduce Δnb (· (x : Nat)) (@ subn x)) (@ subn x)
    (reduce Δnb · (@ subn z)) z
    (reduce Δnb · (@ subn (@ s z))) z
@@ -400,7 +419,8 @@
     (redex-chk
      #:lang cicL
      #:eq (λ (x : Set) (@ f x)) (reduce · (· (f : (Π (x : Set) Set))) f)
-     #:eq (λ (x : (Nat °)) (@ s x)) (reduce Δnb · s)
+     #:eq (λ (x : Nat) (@ s x)) (reduce Δnb · s)
+     ;; #; #:eq (λ (x : (Nat °)) (@ s x)) (reduce Δnb · s)
      #:eq z (@ subn z)
      #:eq z (@ subn (@ s z))
      #:eq (Π (y : Set) Set) (Π (p : Set) Set))))
