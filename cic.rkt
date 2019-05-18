@@ -718,18 +718,13 @@
      ------------------------------------------------------------------ "Let"
      (type-infer Δ Γ (let (x = e : t) e_body) (substitute t_body x e))]
 
-    #;[(ind-type d D)
-     (side-condition (Δ-in-dom Δ D))
+    [(ind-type d D)
      (Δ-type-in Δ D t_D)
      (where D_0 (free-variable (Δ Γ) D))
      (type-infer Δ (Γ (D_0 : t_D)) (in-hole Θ D_0) t) ;; Treat inductive type as a normal function
      (simple Δ ind)
      --------------------------------------------
      (type-infer Δ Γ (name ind (in-hole Θ d)) t)]
-
-    [(ind-type d D) (Δ-type-in Δ D t) (wf Δ Γ)
-     --------------------- "Ind"
-     (type-infer Δ Γ d t)]
 
     [(Δ-constr-in Δ c t) (wf Δ Γ)
      --------------------- "Constr"
@@ -1295,6 +1290,8 @@
 
     [(ind-type d D)
      (side-condition (Δ-in-dom Δ D))
+     (where n ,(+ (term (Δ-ref-parameter-count Δ D)) (term (Δ-ref-non-parameter-count Δ D))))
+     (side-condition ,(eq? (term (Θ-length Θ)) (term n))) ;; make sure inductive type is fully applied
      (where V (Δ-ref-polarities Δ D))
      (where Θ_p (take-parameters Δ D Θ))
      (where Θ_i (take-indicies   Δ D Θ))
@@ -1703,6 +1700,15 @@
     [(Δ-ref-parameter-count Δ D)
      n
      (where (D : n _ _ _) (snoc-env-ref Δ D))])
+
+  ;; Return the number of non-parameter arguments (indices) for the inductive type D
+  (define-metafunction cicL
+    Δ-ref-non-parameter-count : Δ_0 D_0 -> n
+    #:pre (Δ-in-dom Δ_0 D_0)
+    [(Δ-ref-non-parameter-count Δ D)
+     ,(- (term (Ξ-length Ξ)) (term n))
+     (where n (Δ-ref-parameter-count Δ D))
+     (judgment-holds (Δ-type-in Δ D (in-hole Ξ (in-hole Θ U))))])
 
   ;; Return the number of parameters for the inductive type D that has a constructor c_0
   (define-metafunction cicL
