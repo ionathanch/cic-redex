@@ -726,9 +726,16 @@
      --------------------------------------------
      (type-infer Δ Γ (name ind (in-hole Θ d)) t)]
 
-    [(Δ-constr-in Δ c t) (wf Δ Γ)
-     --------------------- "Constr"
-     (type-infer Δ Γ c t)]
+    [(Δ-constr-in Δ c t_c) (wf Δ Γ)
+     (where D (Δ-key-by-constructor Δ c))
+     (where c_0 (free-variable (Δ Γ) c))
+     (where s (free-variable (Δ Γ t_c c_0) c_0)) ;; TODO: Replace c_0 with literal variable name `s`
+     (set-stage t_c D s t_cs)
+     (type-infer Δ (Γ (c_0 : t_cs)) (in-hole Θ c_0) t_D) ;; Treat constructor as a normal function
+     (set-stage t_D D (^ s) t) ;; Inductive type returned should have the successor stage
+     (simple Δ t)
+     --------------------------------- "Constr"
+     (type-infer Δ Γ (in-hole Θ c) t)]
 
     [(type-infer Δ Γ e (name t_I (in-hole Θ D)))
      (where Θ_p (take-parameters Δ D Θ))  ;; Extend Γ with parameters determined from e_Di ...
@@ -1321,6 +1328,26 @@
   (redex-judgment-holds-chk
    (simple Δlist)
    [(Π (x : (@ (List s) (Nat s))) (Π (y : (Nat ∞)) (Π (z : (@ (List ∞) (Nat s))) (Nat ∞))))]))
+
+(begin ;; staging
+
+  ;; In the constructor of type D with type t, wherever D appears, set its stage annotation to s
+  ;; N.B. D should always appear in t as a full type
+  (define-judgment-form cicL
+    #:mode (set-stage I I I O)
+    #:contract (set-stage t D S t)
+
+    [(full-type d D)
+     ------------------------
+     (set-stage (in-hole Θ d) D S (D S))]
+
+    [(set-stage t_1 D S t_11)
+     (set-stage t_2 D S t_22)
+     ------------------------------------------------------
+     (set-stage (Π (x : t_1) t_2) D S (Π (x : t_11) t_22))]
+
+    [--------------------
+     (set-stage t D S t)]))
 
 (begin ;; match aux
 
