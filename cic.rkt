@@ -40,13 +40,13 @@
 
   (U ::= (Type i) Set Prop)
   (S ::= r s p (^ S) ∞)
-  (e t ::= c x d (λ (x : t) e) (@ e e) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
+  (e t ::= c x (λ (x : t) e) (@ e e) (I@ d t ...) (C@ c e ...) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
   (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; D == (D ∞)
   (Γ ::= · (Γ (x : t)) (Γ (x = e : t)))
   (Δ ::= · (Δ (D : n V t Γ)))
 
   (v ::= ⊕ + - ○)  ;; strictly positive, positive, negative, invariant polarities
-  (V ::= · (V v))   ;; vector of polarities for parameters of inductive types
+  (V ::= (v ...))   ;; vector of polarities for parameters of inductive types
 
   (Ξ ::= hole (Π (x : t) Ξ)) ; Telescopes, as Π contexts
   (Θ ::= hole (@ Θ e)) ; Argument lists, as application contexts
@@ -111,88 +111,88 @@
   (default-equiv (curry alpha-equivalent? cicL))
 
   (define-term Δ0
-    (· (False : 0 · Prop ·)))
+    (· (False : 0 () Prop ·)))
 
   (define-term Δ01
-    (Δ0 (Unit : 0 · Prop (· (tt : Unit)))))
+    (Δ0 (Unit : 0 () Prop (· (tt : (I@ Unit))))))
 
   (define-term Δb
-    (Δ01 (Bool : 0 · Set ((· (true : Bool)) (false : Bool)))))
+    (Δ01 (Bool : 0 () Set ((· (true : (I@ Bool))) (false : (I@ Bool))))))
 
   (define-term Δnb
-    (Δb (Nat : 0 · Set ((· (z : Nat)) (s : (Π (x : Nat) Nat))))))
+    (Δb (Nat : 0 () Set ((· (z : (I@ Nat))) (s : (Π (x : (I@ Nat)) (I@ Nat)))))))
 
   ;; Tests parameters
   (define-term Δlist
-    (Δnb (List : 1 (· ⊕) (Π (A : Set) Set)
-                ((· (nil : (Π (A : Set) (@ List A))))
-                 (cons : (-> (A : Set) (a : A) (ls : (@ List A)) (@ List A)))))))
+    (Δnb (List : 1 (⊕) (Π (A : Set) Set)
+                ((· (nil : (Π (A : Set) (I@ List A))))
+                 (cons : (-> (A : Set) (a : A) (ls : (I@ List A)) (I@ List A)))))))
 
   ;; Check that all constructors have explicit parameter declarations; implicit is surface sugar
   (define-term Δbadlist
-    (Δnb (List : 1 (· ⊕) (Π (A : Set) Set)
-                ((· (nil : (@ List A)))
-                 (cons : (-> (a : A) (ls : (@ List A)) (@ List A)))))))
+    (Δnb (List : 1 (⊕) (Π (A : Set) Set)
+                ((· (nil : (I@ List A)))
+                 (cons : (-> (a : A) (ls : (I@ List A)) (I@ List A)))))))
 
   (define-term subn
-    (fix f : (Π (x : Nat) Nat)
-         (λ (x : Nat)
-           (case x (λ (x : Nat) Nat) (z (λ (x : Nat) (@ f x)))))))
+    (fix f : (Π (x : (I@ Nat)) (I@ Nat))
+         (λ (x : (I@ Nat))
+           (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f x)))))))
 
   #;(define-term subn
-    (fix f : (Π (x : (Nat *)) (Nat °))
-         (λ (x : (Nat °))
-           (case x (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) (@ f x)))))))
+    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
+         (λ (x : (I@ (Nat °)))
+           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f x)))))))
 
   (define-term plus
-    (fix add : (Π (n : Nat) (Π (m : Nat) Nat))
-      (λ (n : Nat)
-        (λ (m : Nat)
-          (case n (λ (x : Nat) Nat)
+    (fix add : (Π (n : (I@ Nat)) (Π (m : (I@ Nat)) (I@ Nat)))
+      (λ (n : (I@ Nat))
+        (λ (m : (I@ Nat))
+          (case n (λ (x : (I@ Nat)) (I@ Nat))
             (m
-             (λ (x : Nat)
-               (@ s (@ (@ add x) m)))))))))
+             (λ (x : (I@ Nat))
+               (C@ s (@ (@ add x) m)))))))))
 
   #;(define-term plus
-    (fix add : (Π (n : (Nat *)) (Π (m : (Nat °)) (Nat °)))
-      (λ (n : (Nat °))
-        (λ (m : (Nat °))
-          (case n (λ (x : (Nat (^ s))) Nat)
+    (fix add : (Π (n : (I@ (Nat *))) (Π (m : (I@ (Nat °))) (I@ (Nat °))))
+      (λ (n : (I@ (Nat °)))
+        (λ (m : (I@ (Nat °)))
+          (case n (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
             (m
-             (λ (x : (Nat s))
-               (@ s (@ (@ add x) m)))))))))
+             (λ (x : (I@ (Nat s)))
+               (C@ s (@ (@ add x) m)))))))))
 
   ;; ill-typed but well-formed
   (define-term subn-bad1
-    (fix f : (Π (x : Nat) Nat)
-         (λ (x : Nat)
-           (case x (λ (x : Nat) Nat) (z (λ (x : Nat) (@ f z)))))))
+    (fix f : (Π (x : (I@ Nat)) (I@ Nat))
+         (λ (x : (I@ Nat))
+           (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f z)))))))
 
   #;(define-term subn-bad1
-    (fix f : (Π (x : (Nat *)) (Nat °))
-         (λ (x : (Nat °))
-           (case x (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) (@ f z)))))))
+    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
+         (λ (x : (I@ (Nat °)))
+           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f z)))))))
 
   (define-term subn-bad2
-    (fix f : (Π (x : Nat) Nat)
+    (fix f : (Π (x : (I@ Nat)) (I@ Nat))
          (λ (A : Set)
-           (λ (x : Nat)
-             (case x (λ (x : Nat) Nat) (z (λ (x : Nat) (@ f x))))))))
+           (λ (x : (I@ Nat))
+             (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f x))))))))
 
   #;(define-term subn-bad2
-    (fix f : (Π (x : (Nat *)) (Nat °))
+    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
          (λ (A : Set)
-           (λ (x : (Nat °))
-             (case x (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) (@ f x))))))))
+           (λ (x : (I@ (Nat °)))
+             (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f x))))))))
 
   (define-term Ω
-    (fix f : (Π (x : Nat) Nat)
-         (λ (x : Nat)
+    (fix f : (Π (x : (I@ Nat)) (I@ Nat))
+         (λ (x : (I@ Nat))
            (@ f x))))
 
   #;(define-term Ω
-    (fix f : (Π (x : (Nat *)) (Nat °))
-         (λ (x : (Nat °))
+    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
+         (λ (x : (I@ (Nat °)))
            (@ f x))))
 
   (redex-chk
@@ -215,10 +215,10 @@
    #:m e subn-bad1
    #:m e subn-bad2
    #:m e Ω
-   #:m (in-hole Θ Nat) (@ Nat)
-   #:m (in-hole Ξ (in-hole Θ Nat)) (Π (x : Nat) (@ Nat))
-   #:m (in-hole hole (Π (x : (in-hole Θ D)) U)) (Π (x : (@ Nat)) Set)
-   #:m (in-hole Ξ_D (Π (x : (in-hole Θ D)) U)) (Π (x : (@ Nat)) Set)))
+   #:m (in-hole Θ Nat) Nat
+   #:m (in-hole Ξ (in-hole Θ Nat)) (Π (x : Nat) Nat)
+   #:m (in-hole hole (Π (x : (in-hole Θ D)) U)) (Π (x : Nat) Set)
+   #:m (in-hole Ξ_D (Π (x : (in-hole Θ D)) U)) (Π (x : Nat) Set)))
 
 ;; ------------------------------------------------------------------------
 ;; Universes
@@ -325,13 +325,14 @@
        (--> (let (x = e_0 : t) e_1)
             (substitute e_1 x e_0)
             "ζ")
-       (--> (case (in-hole Θ c_i) _ (e_0 ... e_n))
+       (--> (case (C@ c_i e ...) _ (e_0 ... e_n))
             (in-hole Θ_i e_i)
             (where #t (Δ-in-constructor-dom Δ c_i))
             (where/hidden e_i (select-method Δ c_i e_0 ... e_n))
-            (where Θ_i (take-indicies Δ c_i Θ))
+            (where (_ (e_a ...)) (take-parameters-indices Δ c_i (e ...)))
+            (where Θ_i (Θ-build (e_a ...)))
             "ι1")
-       (--> (@ (name e_f (fix f : t_f (λ (x : t) e))) (name e_a (in-hole Θ c)))
+       (--> (@ (name e_f (fix f : t_f (λ (x : t) e))) (name e_a (C@ c e_c ...)))
             (substitute (substitute e f e_f) x e_a)
             (where #t (Δ-in-constructor-dom Δ c))
             "ι2"))))
@@ -373,17 +374,17 @@
    (reduce · · f) f
    (reduce · · (in-hole (@ hole z) (λ (x : Nat) Nat))) Nat
    ;; #;(reduce · · (in-hole (@ hole z) (λ (x : (Nat °)) Nat))) Nat
-   (reduce Δnb · (case z (λ (x : Nat) Nat) (z (λ (x : Nat) x)))) z
+   (reduce Δnb · (case (C@ z) (λ (x : Nat) Nat) ((C@ z) (λ (x : Nat) x)))) (C@ z)
    ;; #;(reduce Δnb · (case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x)))) z
-   (reduce Δlist · (case (@ nil Nat) (λ (ls : (@ List Nat)) Bool) (true false))) true
-   ;; #;(reduce Δlist · (case (@ nil Nat) (λ (ls : (@ (List (^ s)) Nat)) Bool) (true false))) true
+   (reduce Δlist · (case (C@ nil Nat) (λ (ls : (I@ List Nat)) Bool) (true false))) true
+   ;; #;(reduce Δlist · (case (C@ nil Nat) (λ (ls : (I@ (List (^ s)) Nat)) Bool) (true false))) true
    (reduce Δnb (· (x : Nat)) (@ subn x)) (@ subn x)
-   (reduce Δnb · (@ subn z)) z
-   (reduce Δnb · (@ subn (@ s z))) z
-   (reduce Δnb · (@ (@ plus z) z)) z
-   (reduce Δnb · (@ (@ plus (@ s z)) z)) (@ s z)
-   (reduce Δnb · (@ (@ plus z) (@ s z))) (@ s z)
-   (reduce Δnb · (@ (@ plus (@ s z)) (@ s z))) (@ s (@ s z))))
+   (reduce Δnb · (@ subn (C@ z))) (C@ z)
+   (reduce Δnb · (@ subn (C@ s (C@ z)))) (C@ z)
+   (reduce Δnb · (@ (@ plus (C@ z)) (C@ z))) (C@ z)
+   (reduce Δnb · (@ (@ plus (C@ s (C@ z))) (C@ z))) (C@ s (C@ z))
+   (reduce Δnb · (@ (@ plus (C@ z)) (C@ s (C@ z)))) (C@ s (C@ z))
+   (reduce Δnb · (@ (@ plus (C@ s (C@ z))) (C@ s (C@ z)))) (C@ s (C@ s (C@ z)))))
 
 ;; ------------------------------------------------------------------------
 ;; Equivalence
@@ -419,10 +420,8 @@
     (redex-chk
      #:lang cicL
      #:eq (λ (x : Set) (@ f x)) (reduce · (· (f : (Π (x : Set) Set))) f)
-     #:eq (λ (x : Nat) (@ s x)) (reduce Δnb · s)
-     ;; #; #:eq (λ (x : (Nat °)) (@ s x)) (reduce Δnb · s)
-     #:eq z (@ subn z)
-     #:eq z (@ subn (@ s z))
+     #:eq (C@ z) (@ subn (C@ z))
+     #:eq (C@ z) (@ subn (C@ s (C@ z)))
      #:eq (Π (y : Set) Set) (Π (p : Set) Set))))
 
 ;; ------------------------------------------------------------------------
@@ -451,49 +450,38 @@
   ;; is a subtype of ((D S') ps' as')
   ;; if S ⊑ S', ps ≼ ps' wrt V, and as ≡ as'
   ;; where V is the vector of polarities for D
-  ;; TODO: handle unannotated full types
-  [(<=S S_0 S_1)
-   (where Θ_0p (take-parameters Δ D Θ_0))
-   (where Θ_1p (take-parameters Δ D Θ_1))
-   (where (e_0 ...) (Θ-flatten (take-indicies Δ D Θ_0)))
-   (where (e_1 ...) (Θ-flatten (take-indicies Δ D Θ_1)))
-   (where V (Δ-ref-polarities Δ D))
-   (subtype-vector Δ Γ V Θ_0p Θ_1p)
-   (convert Δ Γ e_0 e_1) ...
-   ---------------------------------------------------------- "≼-D"
-   (subtype Δ Γ (in-hole Θ_0 (D S_0)) (in-hole Θ_1 (D S_1)))])
+  [(normalize Δ Γ e_0 (I@ d_0 e_pi0 ...))
+   (normalize Δ Γ e_1 (I@ d_1 e_pi1 ...))
+   (annot-type d_0 (D S_0))
+   (annot-type d_1 (D S_1))
+   (<=S S_0 S_1)
+   (where ((e_p0 ...) (e_i0 ...)) (take-parameters-indices Δ D (e_pi0 ...)))
+   (where ((e_p1 ...) (e_i1 ...)) (take-parameters-indices Δ D (e_pi1 ...)))
+   (where (v ...) (Δ-ref-polarities Δ D))
+   (subtype-polarity Δ Γ v e_p0 e_p1) ...
+   (convert Δ Γ e_i0 e_i1) ...
+   ---------------------- "≼-D"
+   (subtype Δ Γ e_0 e_1)])
 
 (define-judgment-form cicL
-  #:mode (subtype-vector I I I I I)
-  #:contract (subtype-vector Δ Γ V Θ_0 Θ_1)
+  #:mode (subtype-polarity I I I I I)
+  #:contract (subtype-polarity Δ Γ v e e)
 
   [(convert Δ Γ e_0 e_1)
-   (subtype-vector Δ Γ V Θ_0 Θ_1)
-   --------------------------------------------------- "vst-inv"
-   (subtype-vector Δ Γ (V ○) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+   --------------------------------- "vst-inv"
+   (subtype-polarity Δ Γ ○ e_0 e_1)]
 
   [(subtype Δ Γ e_0 e_1)
-   (subtype-vector Δ Γ V Θ_0 Θ_1)
-   --------------------------------------------------- "vst-strict-pos"
-   (subtype-vector Δ Γ (V ⊕) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+   ---------------------------------- "vst-strict-pos"
+   (subtype-polarity Δ Γ ⊕ e_0 e_1)]
 
   [(subtype Δ Γ e_0 e_1)
-   (subtype-vector Δ Γ V Θ_0 Θ_1)
-   --------------------------------------------------- "vst-pos"
-   (subtype-vector Δ Γ (V +) (@ Θ_0 e_0) (@ Θ_1 e_1))]
+   --------------------------------- "vst-pos"
+   (subtype-polarity Δ Γ + e_0 e_1)]
 
   [(subtype Δ Γ e_1 e_0)
-   (subtype-vector Δ Γ V Θ_0 Θ_1)
-   --------------------------------------------------- "vst-neg"
-   (subtype-vector Δ Γ (V -) (@ Θ_0 e_0) (@ Θ_1 e_1))]
-
-  ;; Θ should be holes in this rule
-  ;; not sure why the rule has them as vectors in Fig. 2.1
-  [(where (e_0 ...) (Θ-flatten Θ_0))
-   (where (e_1 ...) (Θ-flatten Θ_1))
-   (convert Δ Γ e_0 e_1) ...
-   ------------------------------- "vst-conv"
-   (subtype-vector Δ Γ · Θ_0 Θ_1)])
+   --------------------------------- "vst-neg"
+   (subtype-polarity Δ Γ - e_0 e_1)])
 
 (module+ test
   (redex-judgment-holds-chk
@@ -511,34 +499,26 @@
    [#:f (Π (x : Set) Prop) (Π (x : Prop) Set)]
    [(Π (x : Set) Prop) (Π (x : Set) Set)]
    [(@ (λ (x : (Type 1)) Set) Set) Set]
-   [(@ (List S) Nat) (@ (List (^ S)) Nat)]))
+   [(I@ Nat) (I@ Nat)]
+   [(I@ (Nat S)) (I@ Nat)]
+   [(I@ (Nat S)) (I@ (Nat ∞))]
+   [(I@ Nat) (I@ (Nat ∞))]
+   [(I@ (Nat ∞)) (I@ Nat)]
+   [(I@ (Nat ∞)) (I@ (Nat ∞))]
+   [(I@ (List S) (I@ Nat)) (I@ (List (^ S)) (I@ Nat))]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (subtype-vector · ·)
-   [· hole hole]
-   [(· ⊕) (@ hole Prop) (@ hole Set)]
-   [(· +) (@ hole Prop) (@ hole Set)]
-   [(· -) (@ hole Set) (@ hole Prop)]
-   [(· ○) (@ hole Prop) (@ hole Prop)]
-   [((· -) +) (@ (@ hole Set) Prop) (@ (@ hole Prop Set))]))
+   (subtype-polarity · ·)
+   [⊕ Prop Set]
+   [+ Prop Set]
+   [- Set Prop]
+   [○ Prop Prop]))
 
 ;; ------------------------------------------------------------------------
 ;; Typing
 
 (begin ;; well-formed environment
-
-  ;; Make sure length of polarities is the same as number of parameters
-  (define-judgment-form cicL
-    #:mode (valid-polarities I I)
-    #:contract (valid-polarities n V)
-
-    [-----------------------
-     (valid-polarities 0 ·)]
-
-    [(valid-polarities ,(sub1 (term n)) V)
-     ---------------------------
-     (valid-polarities n (V _))])
 
   (define-judgment-form cicL
     #:mode (valid-parameters I I I)
@@ -557,7 +537,7 @@
 
     [(full-type d D)
      -----------------------------------------
-     (constructor-type Δ D (in-hole Θ d))]
+     (constructor-type Δ D (I@ d e ...))]
 
     [(side-condition (free-in x t_2))
      (side-condition (not-free-in D t_1))
@@ -575,10 +555,10 @@
     #:mode (valid-constructor I I)
     #:contract (valid-constructor Δ (c : t))
 
-    [(where (in-hole Ξ_c (in-hole Θ d)) t_c) (full-type d D)
+    [(where (in-hole Ξ_c (I@ d e ...)) t_c) (full-type d D)
      (valid-parameters n t_c t_D) ;; constructor has same parameters as inductive type
      (side-condition (full-types-only t_c)) ;; I5
-     (type-infer Δ (· (D : t_D)) t_c U_c) ;; I2 (maybe redundant, given I4?)
+     (type-infer Δ (· (D : t_D)) (I@-to-@ D t_c) U_c) ;; I2
      (constructor-type Δ D t_c) ;; I4
      ;; Positivity conditions
      (where Ξ_p (Ξ-take-parameters Δ_0 c Ξ_c))
@@ -587,7 +567,7 @@
      (where (x_ni ...) (pos-neg-variables V Ξ_p))
      (where (x_sp ...) (strictly-positive-variables V Ξ_p))
      (pos-context Δ_0 V (x_p ...) Ξ_c) ;; I6
-     (side-condition (all ((not-free-in x_ni Θ) ...))) ;; I7
+     (side-condition (all ((not-free-in x_ni (e ...)) ...))) ;; I7
      (strict-positivity-product Δ_0 x_sp Ξ_i) ... ;; I9
      --------------------------------------------------------------------------------------
      (valid-constructor (name Δ_0 (Δ (D : n V (name t_D (in-hole Ξ_D U_D)) _))) (c : t_c))])
@@ -601,13 +581,13 @@
      (wf · ·)]
 
     [(wf Δ Γ)
-     (type-infer Δ Γ t U)
+     #;(type-infer Δ Γ t U)
      ------------------- "W-Local-Assum"
      (wf Δ (Γ (x : t)))]
 
     [(wf Δ Γ)
-     (type-check Δ Γ e t)
-     (type-infer Δ Γ t U)
+     #;(type-check Δ Γ e t)
+     #;(type-infer Δ Γ t U)
      ----------------------- "W-Local-Def"
      (wf Δ (Γ (x = e : t)))]
 
@@ -615,7 +595,7 @@
      (where #f (Δ-in-dom Δ D))
      (where ((c_i : t_i) ...) (Δ-ref-constructor-map Δ_0 D))
      (where (c_!_0 ...) (c_i ...)) ; all constructors unique
-     (valid-polarities n V)
+     (side-condition ,(eq? (term n) (length (term V))))
      (side-condition (full-types-only t)) ;; I5
      (type-infer Δ · t U_D) ;; I1
      (valid-constructor Δ_0 (c_i : t_i)) ...
@@ -630,13 +610,13 @@
 (module+ test
   (redex-judgment-holds-chk
    valid-constructor
-   [Δ01 (tt : Unit)]
-   [Δb (true : Bool)]
-   [Δb (false : Bool)]
-   [Δnb (z : Nat)]
-   [Δnb (s : (Π (x : Nat) Nat))]
-   [Δlist (nil : (Π (A : Set) (@ List A)))]
-   [Δlist (cons : (-> (A : Set) (a : A) (ls : (@ List A)) (@ List A)))])
+   [Δ01 (tt : (I@ Unit))]
+   [Δb (true : (I@ Bool))]
+   [Δb (false : (I@ Bool))]
+   [Δnb (z : (I@ Nat))]
+   [Δnb (s : (Π (x : (I@ Nat)) (I@ Nat)))]
+   [Δlist (nil : (Π (A : Set) (I@ List A)))]
+   [Δlist (cons : (-> (A : Set) (a : A) (ls : (I@ List A)) (I@ List A)))])
 
   (redex-relation-chk
    wf
@@ -645,20 +625,17 @@
    [Δ01 ·]
    [Δb ·]
    [Δnb ·]
-   [Δnb (· (x : Nat))]
+   [Δnb (· (x : (I@ Nat)))]
    [Δlist ·]
    [#:f Δbadlist ·]
-   [Δlist (· (x = (λ (x : Nat) (λ (y : Nat) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))]
-   [Δlist ((· (x = (λ (x : Nat) (λ (y : Nat) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))
-           (y = (λ (x : Nat) (λ (y : Nat) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))]
-   #;[Δlist (· (x = (λ (x : (Nat °)) (λ (y : (Nat °)) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))]
-   #;[Δlist ((· (x = (λ (x : (Nat °)) (λ (y : (Nat °)) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))
-           (y = (λ (x : (Nat °)) (λ (y : (Nat °)) y)) : (Π (x : Nat) (Π (y : Nat) Nat))))]
-   [Δlist (· (x = subn : (Π (y : Nat) Nat)))]
-   [Δnb (· (x = subn : (Π (y : Nat) Nat)))]
+   [Δlist (· (x = (λ (x : (I@ Nat)) (λ (y : (I@ Nat)) y)) : (Π (x : (I@ Nat)) (Π (y : (I@ Nat)) (I@ Nat)))))]
+   [Δlist ((· (x = (λ (x : (I@ Nat)) (λ (y : (I@ Nat)) y)) : (Π (x : (I@ Nat)) (Π (y : (I@ Nat)) (I@ Nat)))))
+           (y = (λ (x : (I@ Nat)) (λ (y : (I@ Nat)) y)) : (Π (x : (I@ Nat)) (Π (y : (I@ Nat)) (I@ Nat)))))]
+   [Δlist (· (x = subn : (Π (y : (I@ Nat)) (I@ Nat))))]
+   [Δnb (· (x = subn : (Π (y : (I@ Nat)) (I@ Nat))))]
    ; This passes, but is very slow without a large cache.
-   #;[Δnb ((· (x = subn : (Π (y : Nat) Nat)))
-           (z = subn : (Π (y : Nat) Nat)))]))
+   #;[Δnb ((· (x = subn : (Π (y : (I@ Nat)) (I@ Nat))))
+           (z = subn : (Π (y : (I@ Nat)) (I@ Nat))))]))
 
 (begin ;; typing
 
@@ -721,23 +698,26 @@
     [(ind-type d D)
      (Δ-type-in Δ D t_D)
      (where D_0 (free-variable (Δ Γ) D))
+     (where Θ (Θ-build (t_pa ...)))
      (type-infer Δ (Γ (D_0 : t_D)) (in-hole Θ D_0) t) ;; Treat inductive type as a normal function
-     (simple Δ ind)
-     --------------------------------------------
-     (type-infer Δ Γ (name ind (in-hole Θ d)) t)]
+     (simple Δ (I@ d t_pa ...))
+     -------------------------------------------- "Ind"
+     (type-infer Δ Γ (I@ d t_pa ...) t)]
 
     [(Δ-constr-in Δ c t_c) (wf Δ Γ)
-     (where D (Δ-key-by-constructor Δ c))
      (where c_0 (free-variable (Δ Γ) c))
      (where s (free-variable (Δ Γ t_c c_0) c_0)) ;; TODO: Replace c_0 with literal variable name `s`
-     (set-stage t_c D s t_cs)
-     (type-infer Δ (Γ (c_0 : t_cs)) (in-hole Θ c_0) t_D) ;; Treat constructor as a normal function
-     (set-stage t_D D (^ s) t) ;; Inductive type returned should have the successor stage
+     (where Θ_c (Θ-build (e_pa ...)))
+     (type-infer Δ (Γ (c_0 : t_c)) (in-hole Θ_c c_0) (I@ d e ...)) ;; Treat constructor as a normal function
+     (ind-type d D)
+     (where t (I@ (D (^ s)) e ...)) ;; Inductive type returned must have a successor stage
      (simple Δ t)
      --------------------------------- "Constr"
-     (type-infer Δ Γ (in-hole Θ c) t)]
+     (type-infer Δ Γ (C@ c e_pa ...) t)]
 
-    [(type-infer Δ Γ e (name t_I (in-hole Θ D)))
+    [(type-infer Δ Γ e (name t_I (I@ d e_pi ...)))
+     (ind-type d D)
+     (where Θ (Θ-build (e_pi ...)))
      (where Θ_p (take-parameters Δ D Θ))  ;; Extend Γ with parameters determined from e_Di ...
      (where Θ_i (take-indicies Δ D Θ))
      (check-motive Δ Γ t_I D Θ_p e_motive) ;; Check the motive matches the inductive type
@@ -785,18 +765,15 @@
 
   (redex-judgment-holds-chk
    (type-infer Δlist ·)
-   [(λ (x : Nat) Nat) t]
-   [(λ (x : Nat) Nat) t]
-   #;[(λ (x : (Nat °)) Nat) t]
-   [(case z (λ (x : Nat) Nat) (z (λ (x : Nat) x))) t]
-   #;[(case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x))) t]
-   [#:f nil (@ List A)]
-   [nil (Π (x : Set) (@ List x))]
-   [(@ nil Nat) t]
-   [(@ List Nat) Set]
-   [List (Π (x_A : Set) Set)]
-   [cons (Π (x_A : Set) (Π (x_a : x_A) (Π (x_r : (@ List x_A)) (@ List x_A))))]
-   [(@ cons Nat z (@ nil Nat)) t]
+   [(λ (x : (I@ Nat)) (I@ Nat)) t]
+   [(λ (x : (I@ Nat)) (I@ Nat)) t]
+   #;[(λ (x : (I@ (Nat °))) (I@ Nat)) t]
+   [(case (C@ z) (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) x))) t]
+   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) t]
+   [#:f nil (I@ List A)]
+   [(C@ nil (I@ Nat)) t]
+   [(I@ List (I@ Nat)) Set]
+   [(C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) t]
    [subn t]
    [plus t]
    [#:f subn-bad1 t]
@@ -807,90 +784,90 @@
    type-check
    [· (· (Nat : (Type 0))) (Π (n : Nat) Nat) (Type 1)]
    [· (· (Nat : Set)) (Π (n : Nat) Nat) (Type 1)]
-   [Δnb (· (x : Nat)) Nat Set]
+   [Δnb (· (x : (I@ Nat))) (I@ Nat) Set]
    [Δnb (· (Nat : Set)) (λ (n : Nat) n) (Π (n : Nat) Nat)]
-   #;[(case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x))) t]
-   [Δnb ((· (f : (-> Nat Nat))) (x : Nat))
-        (case x (λ (x : Nat) Nat)
-              (z
-               (λ (x : Nat) (@ f x))))
-        Nat]
-    #;[Δnb ((· (f : (-> Nat Nat))) (x : Nat))
-        (case x (λ (x : (Nat (^ s))) Nat)
-              (z
-               (λ (x : (Nat s)) (@ f x))))
-        Nat]
-   [Δnb (· (f : (-> Nat Nat)))
-    (λ (x : Nat)
-      (case x (λ (x : Nat) Nat)
-            (z
-             (λ (x : Nat) (@ f x)))))
-    (Π (y : Nat) Nat)]
-    #;[Δnb (· (f : (-> Nat Nat)))
-    (λ (x : (Nat °))
-      (case x (λ (x : (Nat (^ s))) Nat)
-            (z
-             (λ (x : (Nat s)) (@ f x)))))
-    (Π (y : Nat) Nat)])
+   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) t]
+   [Δnb ((· (f : (-> (I@ Nat) (I@ Nat)))) (x : (I@ Nat)))
+        (case x (λ (x : (I@ Nat)) (I@ Nat))
+              ((C@ z)
+               (λ (x : (I@ Nat)) (@ f x))))
+        (I@ Nat)]
+    #;[Δnb ((· (f : (-> (I@ Nat) (I@ Nat)))) (x : (I@ Nat)))
+        (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
+              ((C@ z)
+               (λ (x : (I@ (Nat s))) (@ f x))))
+        (I@ Nat)]
+   [Δnb (· (f : (-> (I@ Nat) (I@ Nat))))
+    (λ (x : (I@ Nat))
+      (case x (λ (x : (I@ Nat)) (I@ Nat))
+            ((C@ z)
+             (λ (x : (I@ Nat)) (@ f x)))))
+    (Π (y : (I@ Nat)) (I@ Nat))]
+    #;[Δnb (· (f : (-> (I@ Nat) (I@ Nat))))
+    (λ (x : (I@ (Nat °)))
+      (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
+            ((C@ z)
+             (λ (x : (I@ (Nat s))) (@ f x)))))
+    (Π (y : (I@ Nat)) (I@ Nat))])
 
   (redex-relation-chk
    (type-check Δlist ·)
-   [Nat Set]
-   [z Nat]
-   [(@ s z) Nat]
-   [(Π (x : Nat) Set) (Type 1)]
-   [(λ (x : Nat) Nat) (Π (x : Nat) Set)]
-   #;[(λ (x : (Nat °)) Nat) (Π (x : Nat) Set)]
-   [(λ (x : Nat) x) (Π (x : Nat) Nat)]
-   #;[(λ (x : (Nat °)) x) (Π (x : Nat) Nat)]
-   [(case z (λ (x : Nat) Nat) (z (λ (x : Nat) x))) Nat]
-   #;[(case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x))) Nat]
-   [(case true (λ (x : Bool) Nat) (z (@ s z))) Nat]
-   #;[(case true (λ (x : (Bool (^ s))) Nat) (z (@ s z))) Nat]
-   [(fix f : (-> Nat Nat)
-         (λ (x : Nat)
-           (case x (λ (x : Nat) Nat)
-                 (z
-                  (λ (x : Nat) (@ s x))))))
-    (Π (x : Nat) Nat)]
-   #;[(fix f : (-> (Nat *) Nat)
-         (λ (x : (Nat °))
-           (case x (λ (x : (Nat (^ s))) Nat)
-                 (z
-                  (λ (x : (Nat s)) (@ s x))))))
-    (Π (x : Nat) Nat)]
-   [(fix f : (-> Nat Nat)
-         (λ (x : Nat)
-           (case x (λ (x : Nat) Nat)
-                 (z
-                  (λ (x : Nat) (@ f x))))))
-    (Π (x : Nat) Nat)]
-   #;[(fix f : (-> (Nat *) Nat)
-         (λ (x : (Nat °))
-           (case x (λ (x : (Nat (^ s))) Nat)
-                 (z
-                  (λ (x : (Nat s)) (@ f x))))))
-    (Π (x : Nat) Nat)]
-   [#:f (fix f : (-> Nat Nat)
-             (λ (x : Nat)
-               (case x (λ (x : Nat) Nat)
+   [(I@ Nat) Set]
+   [(C@ z) (I@ Nat)]
+   [(C@ s (C@ z)) (I@ Nat)]
+   [(Π (x : (I@ Nat)) Set) (Type 1)]
+   [(λ (x : (I@ Nat)) (I@ Nat)) (Π (x : (I@ Nat)) Set)]
+   #;[(λ (x : (I@ (Nat °))) (I@ Nat)) (Π (x : (I@ Nat)) Set)]
+   [(λ (x : (I@ Nat)) x) (Π (x : (I@ Nat)) (I@ Nat))]
+   #;[(λ (x : (I@ (Nat °))) x) (Π (x : (I@ Nat)) (I@ Nat))]
+   [(case (C@ z) (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) x))) (I@ Nat)]
+   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) (I@ Nat)]
+   [(case (C@ true) (λ (x : (I@ Bool)) (I@ Nat)) ((C@ z) (C@ s (C@ z)))) (I@ Nat)]
+   #;[(case (C@ true) (λ (x : (I@ (Bool (^ s)))) (I@ Nat)) ((C@ z) (C@ s (C@ z)))) (I@ Nat)]
+   [(fix f : (-> (I@ Nat) (I@ Nat))
+         (λ (x : (I@ Nat))
+           (case x (λ (x : (I@ Nat)) (I@ Nat))
+                 ((C@ z)
+                  (λ (x : (I@ Nat)) (C@ s x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   #;[(fix f : (-> (I@ (Nat *)) (I@ Nat))
+         (λ (x : (I@ (Nat °)))
+           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
+                 ((C@ z)
+                  (λ (x : (I@ (Nat s))) (C@ s x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   [(fix f : (-> (I@ Nat) (I@ Nat))
+         (λ (x : (I@ Nat))
+           (case x (λ (x : (I@ Nat)) (I@ Nat))
+                 ((C@ z)
+                  (λ (x : (I@ Nat)) (@ f x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   #;[(fix f : (-> (I@ (Nat *)) (I@ Nat))
+         (λ (x : (I@ (Nat °)))
+           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
+                 ((C@ z)
+                  (λ (x : (I@ (Nat s))) (@ f x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   [#:f (fix f : (-> (I@ Nat) (I@ Nat))
+             (λ (x : (I@ Nat))
+               (case x (λ (x : (I@ Nat)) (I@ Nat))
                      ((@ f x)
-                      (λ (y : Nat) (@ f x))))))
-    (Π (x : Nat) Nat)]
-   #;[#:f (fix f : (-> Nat Nat)
-             (λ (x : (Nat °))
-               (case x (λ (x : (Nat (^ s))) Nat)
+                      (λ (y : (I@ Nat)) (@ f x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   #;[#:f (fix f : (-> (I@ Nat) (I@ Nat))
+             (λ (x : (I@ (Nat °)))
+               (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
                      ((@ f x)
-                      (λ (y : (Nat s)) (@ f x))))))
-    (Π (x : Nat) Nat)]
-   [(let ([n = z : Nat]) z) Nat]
-   [(let ([n = z : Nat]) n) Nat]
-   [(let ([Nat^ = Nat : Set] [n = z : Nat^]) n) Nat]
-   [(@ cons Nat z (@ nil Nat)) (@ List Nat)]
-   [(case (@ cons Nat z (@ nil Nat)) (λ (ls : (@ List Nat)) Bool)
-          (true (λ (n : Nat) (ls : (@ List Nat)) false))) Bool]
-   #;[(case (@ cons Nat z (@ nil Nat)) (λ (ls : (@ (List (^ s)) Nat)) Bool)
-          (true (λ (n : Nat) (ls : (@ (List s) Nat)) false))) Bool]))
+                      (λ (y : (I@ (Nat s))) (@ f x))))))
+    (Π (x : (I@ Nat)) (I@ Nat))]
+   [(let ([n = (C@ z) : (I@ Nat)]) (C@ z)) (I@ Nat)]
+   [(let ([n = (C@ z) : (I@ Nat)]) n) (I@ Nat)]
+   [(let ([Nat^ = (I@ Nat) : Set] [n = (C@ z) : Nat^]) n) (I@ Nat)]
+   [(C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (I@ List (I@ Nat))]
+   [(case (C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (λ (ls : (I@ List (I@ Nat))) (I@ Bool))
+          ((C@ true) (λ (n : (I@ Nat)) (ls : (I@ List (I@ Nat))) (C@ false)))) (I@ Bool)]
+   #;[(case (C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (λ (ls : (I@ (List (^ s)) (I@ Nat))) Bool)
+          ((C@ true) (λ (n : (I@ Nat)) (ls : (I@ (List s) (I@ Nat))) (C@ false)))) (I@ Bool)]))
 
 ;; ------------------------------------------------------------------------
 ;; Typing aux
@@ -909,13 +886,13 @@
      ----------------------------------
      (pos-stage Δ s (Π (x : t_0) t_1))]
 
-    [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_i (take-indicies   Δ D Θ))
-     (where V (Δ-ref-polarities Δ D))
-     (pos-stage-vector Δ V s Θ_p)
-     (side-condition (not-free-in s Θ_i))
-     ----------------------------------
-     (pos-stage Δ s (in-hole Θ (D S)))])
+    [(ind-type d D)
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D))
+     (pos-stage-polarity Δ v s e_p) ...
+     (side-condition (not-free-in s (e_i ...)))
+     ---------------------------------
+     (pos-stage Δ s (I@ d e ...))])
 
   (define-judgment-form cicL
     #:mode (neg-stage I I I)
@@ -930,101 +907,88 @@
      (neg-stage Δ s (Π (x : t_0) t_1))]
 
     [(side-condition ,(not (eq? (term (bare S)) (term s))))
-     (where Θ_p (take-parameters Δ D Θ))
-     (where Θ_i (take-indicies   Δ D Θ))
-     (where V (Δ-ref-polarities Δ D))
-     (neg-stage-vector Δ V s Θ_p)
-     (side-condition (not-free-in s Θ_i))
-     ----------------------------------
-     (neg-stage Δ s (in-hole Θ (D S)))])
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D))
+     (neg-stage-polarity Δ v s e_p) ...
+     (side-condition (not-free-in s (e_i ...)))
+     ---------------------------------
+     (neg-stage Δ s (I@ (D S) e ...))]
+
+    [(neg-stage Δ s (I@ (D ∞) e ...))
+     -----------------------------
+     (neg-stage Δ s (I@ D e ...))])
 
   (define-judgment-form cicL
-    #:mode (pos-stage-vector I I I I)
-    #:contract (pos-stage-vector Δ V s Θ)
-
-    [------------------------------
-     (pos-stage-vector Δ · s hole)]
+    #:mode (pos-stage-polarity I I I I)
+    #:contract (pos-stage-polarity Δ v s e)
 
     [(pos-stage Δ s e)
-     (pos-stage-vector Δ V s Θ)
-     ------------------------------------
-     (pos-stage-vector Δ (V ⊕) s (@ Θ e))]
+     ------------------------------
+     (pos-stage-polarity Δ ⊕ s e)]
 
     [(pos-stage Δ s e)
-     (pos-stage-vector Δ V s Θ)
-     ------------------------------------
-     (pos-stage-vector Δ (V +) s (@ Θ e))]
+     -----------------------------
+     (pos-stage-polarity Δ + s e)]
 
     [(neg-stage Δ s e)
-     (pos-stage-vector Δ V s Θ)
-     ------------------------------------
-     (pos-stage-vector Δ (V -) s (@ Θ e))]
+     -----------------------------
+     (pos-stage-polarity Δ - s e)]
 
     [(side-condition (not-free-in s e))
-     (pos-stage-vector Δ V s Θ)
-     ------------------------------------
-     (pos-stage-vector Δ (V ○) s (@ Θ e))])
+     -----------------------------
+     (pos-stage-polarity Δ ○ s e)])
 
   (define-judgment-form cicL
-    #:mode (neg-stage-vector I I I I)
-    #:contract (neg-stage-vector Δ V s Θ)
-
-    [------------------------------
-     (neg-stage-vector Δ · s hole)]
+    #:mode (neg-stage-polarity I I I I)
+    #:contract (neg-stage-polarity Δ v s e)
 
     [(neg-stage Δ s e)
-     (neg-stage-vector Δ V s Θ)
-     ------------------------------------
-     (neg-stage-vector Δ (V ⊕) s (@ Θ e))]
+     ------------------------------
+     (neg-stage-polarity Δ ⊕ s e)]
 
     [(neg-stage Δ s e)
-     (neg-stage-vector Δ V s Θ)
-     ------------------------------------
-     (neg-stage-vector Δ (V +) s (@ Θ e))]
+     -----------------------------
+     (neg-stage-polarity Δ + s e)]
 
     [(pos-stage Δ s e)
-     (neg-stage-vector Δ V s Θ)
-     ------------------------------------
-     (neg-stage-vector Δ (V -) s (@ Θ e))]
+     -----------------------------
+     (neg-stage-polarity Δ - s e)]
 
     [(side-condition (not-free-in s e))
-     (neg-stage-vector Δ V s Θ)
-     ------------------------------------
-     (neg-stage-vector Δ (V ○) s (@ Θ e))]))
+     -----------------------------
+     (neg-stage-polarity Δ ○ s e)]))
 
 (module+ test
   (redex-judgment-holds-chk
    (pos-stage Δlist)
    [s Prop]
    [s (Π (x : Prop) Set)]
-   [s (@ (List s) (Nat s))]
-   [s (Π (n : Nat) (@ (List s) Nat))]))
+   [s (I@ (List s) (I@ (Nat s)))]
+   [s (Π (n : Nat) (I@ (List s) (I@ Nat)))]))
 
 (module+ test
   (redex-judgment-holds-chk
    (neg-stage Δlist)
    [s Prop]
    [s (Π (x : Prop) Set)]
-   [s (@ (List r) (Nat r))]
-   [s (Π (l : (@ (List s) Nat)) (Nat r))]))
+   [s (I@ (List r) (I@ (Nat r)))]
+   [s (Π (l : (I@ (List s) (I@ Nat))) (I@ (Nat r)))]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (pos-stage-vector Δlist)
-   [· s hole]
-   [(· ⊕) s (@ hole (@ (List s) Nat))]
-   [(· +) s (@ hole (@ (List s) Nat))]
-   [(· -) s (@ hole (@ (List r) Nat))]
-   [(· ○) s (@ hole Nat)]))
+   (pos-stage-polarity Δlist)
+   [⊕ s (I@ (List s) (I@ Nat))]
+   [+ s (I@ (List s) (I@ Nat))]
+   [- s (I@ (List r) (I@ Nat))]
+   [○ s (I@ Nat)]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (neg-stage-vector Δlist)
-   [· s hole]
-   [(· ⊕) s (@ hole (@ (List r) Nat))]
-   [(· +) s (@ hole (@ (List r) Nat))]
-   [(· -) s (@ hole (@ (List s) Nat))]
-   [(· ○) s (@ hole Nat)]))
+   (neg-stage-polarity Δlist)
+   [⊕ s (I@ (List r) (I@ Nat))]
+   [+ s (I@ (List r) (I@ Nat))]
+   [- s (I@ (List s) (I@ Nat))]
+   [○ s (I@ Nat)]))
 
 (begin ;; positivity/negativity of term variables
 
@@ -1041,16 +1005,16 @@
      (pos-term Δ x e)]
 
     [(neg-term Δ x t_0) (pos-term Δ x t_1)
-     ----------------------------------
+     ---------------------------------
      (pos-term Δ x (Π (x : t_0) t_1))]
 
-    [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_i (take-indicies   Δ D Θ))
-     (where V (Δ-ref-polarities Δ D))
-     (pos-term-vector Δ V x Θ_p)
-     (side-condition (not-free-in x Θ_i))
-     ----------------------------------
-     (pos-term Δ x (in-hole Θ (D S)))])
+    [(ind-type d D)
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D))
+     (pos-term-polarity Δ v x e_p) ...
+     (side-condition (all ((not-free-in x e_i) ...)))
+     --------------------------------
+     (pos-term Δ x (I@ d e ...))])
 
   (define-judgment-form cicL
     #:mode (neg-term I I I)
@@ -1061,70 +1025,56 @@
      (neg-term Δ x e)]
 
     [(pos-term Δ x t_0) (neg-term Δ x t_1)
-     ----------------------------------
+     ---------------------------------
      (neg-term Δ x (Π (y : t_0) t_1))]
 
-    [(where Θ_p (take-parameters Δ D Θ))
-     (where Θ_i (take-indicies   Δ D Θ))
-     (where V (Δ-ref-polarities Δ D))
-     (neg-term-vector Δ V x Θ_p)
-     (side-condition (not-free-in x Θ_i))
-     ----------------------------------
-     (neg-term Δ x (in-hole Θ (D S)))])
+    [(ind-type d D)
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D))
+     (neg-term-polarity Δ v x e_p) ...
+     (side-condition (all ((not-free-in x e_i) ...)))
+     --------------------------------
+     (neg-term Δ x (I@ d e ...))])
 
   (define-judgment-form cicL
-    #:mode (pos-term-vector I I I I)
-    #:contract (pos-term-vector Δ V x Θ)
-
-    [------------------------------
-     (pos-term-vector Δ · x hole)]
+    #:mode (pos-term-polarity I I I I)
+    #:contract (pos-term-polarity Δ v x e)
 
     [(pos-term Δ x e)
-     (pos-term-vector Δ V x Θ)
-     ------------------------------------
-     (pos-term-vector Δ (V ⊕) x (@ Θ e))]
+     -----------------------------
+     (pos-term-polarity Δ ⊕ x e)]
 
     [(pos-term Δ x e)
-     (pos-term-vector Δ V x Θ)
-     ------------------------------------
-     (pos-term-vector Δ (V +) x (@ Θ e))]
+     ----------------------------
+     (pos-term-polarity Δ + x e)]
 
     [(neg-term Δ x e)
-     (pos-term-vector Δ V x Θ)
-     ------------------------------------
-     (pos-term-vector Δ (V -) x (@ Θ e))]
+     ----------------------------
+     (pos-term-polarity Δ - x e)]
 
     [(side-condition (not-free-in x e))
-     (pos-term-vector Δ V x Θ)
-     ------------------------------------
-     (pos-term-vector Δ (V ○) x (@ Θ e))])
+     ----------------------------
+     (pos-term-polarity Δ ○ x e)])
 
   (define-judgment-form cicL
-    #:mode (neg-term-vector I I I I)
-    #:contract (neg-term-vector Δ V x Θ)
-
-    [------------------------------
-     (neg-term-vector Δ · x hole)]
+    #:mode (neg-term-polarity I I I I)
+    #:contract (neg-term-polarity Δ v x e)
 
     [(neg-term Δ x e)
-     (neg-term-vector Δ V x Θ)
-     ------------------------------------
-     (neg-term-vector Δ (V ⊕) x (@ Θ e))]
+     -----------------------------
+     (neg-term-polarity Δ ⊕ x e)]
 
     [(neg-term Δ x e)
-     (neg-term-vector Δ V x Θ)
-     ------------------------------------
-     (neg-term-vector Δ (V +) x (@ Θ e))]
+     ----------------------------
+     (neg-term-polarity Δ + x e)]
 
     [(pos-term Δ x e)
-     (neg-term-vector Δ V x Θ)
-     ------------------------------------
-     (neg-term-vector Δ (V -) x (@ Θ e))]
+     ----------------------------
+     (neg-term-polarity Δ - x e)]
 
     [(side-condition (not-free-in x e))
-     (neg-term-vector Δ V x Θ)
-     ------------------------------------
-     (neg-term-vector Δ (V ○) x (@ Θ e))]))
+     ----------------------------
+     (neg-term-polarity Δ ○ x e)]))
 
 (module+ test
   (redex-judgment-holds-chk
@@ -1132,32 +1082,30 @@
    [x Prop]
    [x x]
    [x (Π (x : Prop) Set)]
-   [x (Π (x : Set) (@ List x))]))
+   [x (Π (x : Set) (I@ List x))]))
 
 (module+ test
   (redex-judgment-holds-chk
    (neg-term Δlist)
    [x Prop]
    [x (Π (x : Prop) Set)]
-   [x (Π (y : (@ List x)) Nat)]))
+   [x (Π (y : (I@ List x)) (I@ Nat))]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (pos-term-vector Δlist)
-   [· x hole]
-   [(· ⊕) x (@ hole (@ List x))]
-   [(· +) x (@ hole (@ List x))]
-   [(· -) x (@ hole (Π (y : (@ List x)) Nat))]
-   [(· ○) x (@ hole Nat)]))
+   (pos-term-polarity Δlist)
+   [⊕ x (I@ List x)]
+   [+ x (I@ List x)]
+   [- x (Π (y : (I@ List x)) (I@ Nat))]
+   [○ x (I@ Nat)]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (neg-term-vector Δlist)
-   [· s hole]
-   [(· ⊕) x (@ hole (Π (y : (@ List x)) Nat))]
-   [(· +) x (@ hole (Π (y : (@ List x)) Nat))]
-   [(· -) x (@ hole (@ List x))]
-   [(· ○) x (@ hole Nat)]))
+   (neg-term-polarity Δlist)
+   [⊕ x (Π (y : (I@ List x)) (I@ Nat))]
+   [+ x (Π (y : (I@ List x)) (I@ Nat))]
+   [- x (I@ List x)]
+   [○ x (I@ Nat)]))
 
 (begin ;; positivity of contexts
   ;; I don't think we need rules for let-contexts (i.e. (Γ (x = e : t)))
@@ -1167,41 +1115,40 @@
     #:contract (pos-context Δ V (x ...) Ξ)
 
     [-----------------------
-     (pos-context Δ · () Ξ)]
+     (pos-context Δ () () Ξ)]
 
     [(where ((_ : t) ...) (Ξ-flatten Ξ))
      (pos-term Δ x t) ...
-     (pos-context Δ V (x_0 ...) Ξ)
-     -------------------------------------
-     (pos-context Δ (V ⊕) (x_0 ... x) Ξ)]
+     (pos-context Δ (v ...) (x_0 ...) Ξ)
+     -----------------------------------------
+     (pos-context Δ (⊕ v ...) (x x_0 ...) Ξ)]
 
     [(where ((_ : t) ...) (Ξ-flatten Ξ))
      (pos-term Δ x t) ...
-     (pos-context Δ V (x_0 ...) Ξ)
-     -------------------------------------
-     (pos-context Δ (V +) (x_0 ... x) Ξ)]
+     (pos-context Δ (v ...) (x_0 ...) Ξ)
+     ----------------------------------------
+     (pos-context Δ (+ v ...) (x x_0 ...) Ξ)]
 
     [(where ((_ : t) ...) (Ξ-flatten Ξ))
      (neg-term Δ x t) ...
-     (pos-context Δ V (x_0 ...) Ξ)
-     -------------------------------------
-     (pos-context Δ (V -) (x_0 ... x) Ξ)]
+     (pos-context Δ (v ...) (x_0 ...) Ξ)
+     ----------------------------------------
+     (pos-context Δ (- v ...) (x x_0 ...) Ξ)]
 
     [(where ((_ : t) ...) (Ξ-flatten Ξ))
      (side-condition (all ((not-free-in x t) ...)))
-     (pos-context Δ V (x_0 ...) Ξ)
-     -------------------------------------
-     (pos-context Δ (V ○) (x_0 ... x) Ξ)]))
+     (pos-context Δ (v ...) (x_0 ...) Ξ)
+     ----------------------------------------
+     (pos-context Δ (○ v ...) (x x_0 ...) Ξ)]))
 
 (module+ test
  (redex-judgment-holds-chk
   (pos-context Δlist)
-  [· () hole]
-  [(· ⊕) (x) (Π (y : (Π (y : Nat) (@ List x))) hole)]
-  [(· +) (x) (Π (y : (Π (y : Nat) (@ List x))) hole)]
-  [(· -) (x) (Π (y : (Π (y : (@ List x)) Nat)) hole)]
-  [(· ○) (x) (Π (y : Nat) hole)]
-  [((· +) ○) (x y) (Π (y : (Π (z : Nat) (@ List x))) hole)]))
+  [(⊕) (x) (Π (y : (Π (y : (I@ Nat)) (I@ List x))) hole)]
+  [(+) (x) (Π (y : (Π (y : (I@ Nat)) (I@ List x))) hole)]
+  [(-) (x) (Π (y : (Π (y : (I@ List x)) (I@ Nat))) hole)]
+  [(○) (x) (Π (y : (I@ Nat)) hole)]
+  [(+ ○) (x y) (Π (y : (Π (z : (I@ Nat)) (I@ List x))) hole)]))
 
 (begin ;; strict positivity
 
@@ -1214,9 +1161,9 @@
      (strict-positivity Δ D t)]
 
     [(full-type d D)
-     (side-condition (not-free-in D Θ))
-     --------------------------------------
-     (strict-positivity Δ D (in-hole Θ d))]
+     (side-condition (all ((not-free-in D e) ...)))
+     -------------------------------------
+     (strict-positivity Δ D (I@ d e ...))]
 
     [(side-condition (not-free-in D t_1))
      (strict-positivity Δ D t_2)
@@ -1225,30 +1172,28 @@
 
     [(full-type d D_0)
      (side-condition (Δ-in-dom Δ D_0))
-     (where V (Δ-ref-polarities Δ D_0))
-     (where Θ_p (take-parameters Δ D_0 Θ))
-     (where Θ_i (take-indicies   Δ D_0 Θ))
-     (side-condition (not-free-in D Θ_i))
-     (strict-positivity-vector Δ V D Θ_p)
-     ------------------------------------------
-     (strict-positivity Δ D (in-hole Θ d))])
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D_0 (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D_0))
+     (side-condition (all ((not-free-in D e_i) ...)))
+     (strict-positivity-polarity Δ v D e_p) ...
+     -------------------------------------
+     (strict-positivity Δ D (I@ d e ...))]
+
+    [(strict-positivity Δ D (I@ d))
+     --------------------------
+     (strict-positivity Δ D d)])
 
   (define-judgment-form cicL
-    #:mode (strict-positivity-vector I I I I)
-    #:contract (strict-positivity-vector Δ V D Θ)
-
-    [--------------------------------------
-     (strict-positivity-vector Δ · D hole)]
+    #:mode (strict-positivity-polarity I I I I)
+    #:contract (strict-positivity-polarity Δ v D e)
 
     [(strict-positivity Δ D e)
-     (strict-positivity-vector Δ V D Θ)
-     ---------------------------------------------
-     (strict-positivity-vector Δ (V ⊕) D (@ Θ e))]
+     --------------------------------------
+     (strict-positivity-polarity Δ ⊕ D e)]
 
     [(side-condition (not-free-in D e))
-     (strict-positivity-vector Δ V D Θ)
-     ---------------------------------------------
-     (strict-positivity-vector Δ (V _) D (@ Θ e))])
+     -------------------------------------
+     (strict-positivity-polarity Δ v D e)])
 
   (define-judgment-form cicL
     #:mode (strict-positivity-product I I I)
@@ -1266,20 +1211,18 @@
   (redex-judgment-holds-chk
    (strict-positivity Δlist)
    [Nat Prop]
-   [Nat (Nat ∞)]
-   [List (@ (List ∞) (Nat ∞))]
-   [Nat (Π (x : Set) (Nat ∞))]
-   [Nat (@ (List ∞) (Nat ∞))]))
+   [Nat (I@ (Nat ∞))]
+   [List (I@ (List ∞) (I@ (Nat ∞)))]
+   [Nat (Π (x : Set) (I@ (Nat ∞)))]
+   [Nat (I@ (List ∞) (I@ (Nat ∞)))]))
 
 (module+ test
   (redex-judgment-holds-chk
-   (strict-positivity-vector Δlist)
-   [· Nat hole]
-   [(· ⊕) Nat (@ hole (@ (List ∞) (Nat ∞)))]
-   [(· +) List (@ hole (Nat ∞))]
-   [(· -) List (@ hole (Nat ∞))]
-   [(· ○) List (@ hole (Nat ∞))]
-   [((· ⊕) -) Nat (@ (@ hole (@ (List ∞) (Nat ∞))) Prop)]))
+   (strict-positivity-polarity Δlist)
+   [⊕ Nat (I@ (List ∞) (I@ (Nat ∞)))]
+   [+ List (I@ (Nat ∞))]
+   [- List (I@ (Nat ∞))]
+   [○ List (I@ (Nat ∞))]))
 
 (begin ;; simple types
 
@@ -1297,57 +1240,29 @@
 
     [(ind-type d D)
      (side-condition (Δ-in-dom Δ D))
-     (where n ,(+ (term (Δ-ref-parameter-count Δ D)) (term (Δ-ref-non-parameter-count Δ D))))
-     (side-condition ,(eq? (term (Θ-length Θ)) (term n))) ;; make sure inductive type is fully applied
-     (where V (Δ-ref-polarities Δ D))
-     (where Θ_p (take-parameters Δ D Θ))
-     (where Θ_i (take-indicies   Δ D Θ))
-     (side-condition (no-free-stage-vars (in-hole D Θ_i))) ;; need smth to plug the hole in
-     (simple-vector Δ V Θ_p)
-     ----------------------------- "s-ind"
-     (simple Δ (in-hole Θ d))])
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e ...)))
+     (where (v ...) (Δ-ref-polarities Δ D))
+     (side-condition (all ((no-free-stage-vars e_i) ...)))
+     (simple-polarity Δ v e_p) ...
+     ------------------------ "s-ind"
+     (simple Δ (I@ d e ...))])
 
   (define-judgment-form cicL
-    #:mode (simple-vector I I I)
-    #:contract (simple-vector Δ V Θ)
-
-    [------------------------- "sv-empty"
-     (simple-vector Δ · hole)]
+    #:mode (simple-polarity I I I)
+    #:contract (simple-polarity Δ v e)
 
     [(side-condition (no-free-stage-vars t))
-     (simple-vector Δ V Θ)
-     -------------------------------- "sv-inv"
-     (simple-vector Δ (V ○) (@ Θ t))]
+     ------------------------ "sv-inv"
+     (simple-polarity Δ ○ t)]
 
     [(simple Δ t)
-     (simple-vector Δ V Θ)
-     -------------------------------- "sv-ninv"
-     (simple-vector Δ (V _) (@ Θ t))]))
+     ------------------------ "sv-ninv"
+     (simple-polarity Δ v t)]))
 
 (module+ test
   (redex-judgment-holds-chk
    (simple Δlist)
-   [(Π (x : (@ (List s) (Nat s))) (Π (y : (Nat ∞)) (Π (z : (@ (List ∞) (Nat s))) (Nat ∞))))]))
-
-(begin ;; staging
-
-  ;; In the constructor of type D with type t, wherever D appears, set its stage annotation to s
-  ;; N.B. D should always appear in t as a full type
-  (define-judgment-form cicL
-    #:mode (set-stage I I I O)
-    #:contract (set-stage t D S t)
-
-    [(full-type d D)
-     ------------------------
-     (set-stage (in-hole Θ d) D S (D S))]
-
-    [(set-stage t_1 D S t_11)
-     (set-stage t_2 D S t_22)
-     ------------------------------------------------------
-     (set-stage (Π (x : t_1) t_2) D S (Π (x : t_11) t_22))]
-
-    [--------------------
-     (set-stage t D S t)]))
+   [(Π (x : (I@ (List s) (I@ (Nat s)))) (Π (y : (I@ (Nat ∞))) (Π (z : (I@ (List ∞) (I@ (Nat s))))  (I@ (Nat ∞)))))]))
 
 (begin ;; match aux
 
@@ -1370,8 +1285,9 @@
      ---------------------- "Prop-extended-empty"
      (elimable Δ D Prop U)]
 
-    [(where ((c : (in-hole Ξ (in-hole Θ_c D)))) (Δ-ref-constructor-map Δ D))
+    [(where ((c : (in-hole Ξ (I@ d e ...)))) (Δ-ref-constructor-map Δ D))
      (where ((_ : Prop) ...) (Ξ-flatten Ξ))
+     (ind-type d D)
      ---------------------- "Prop-extended-singleton"
      (elimable Δ D Prop U)])
 
@@ -1380,10 +1296,12 @@
     #:contract (check-motive Δ Γ t D Θ e)
 
     [(where Ξ_D (Δ-ref-index-Ξ Δ D Θ_p))
+     (where (e_p ...) (Θ-flatten Θ_p))
+     (where ((x_i : _) ...) (Ξ-flatten Ξ_D))
      ;; check that the motive matches the inductive index telescope, i.e., the telescope sans parameters.
      ;; TODO: Check subtyping between Ξ_D, rather than α-equiv?
      (type-infer Δ Γ e (in-hole Ξ_D (Π (x : t_D) U_B)))
-     (subtype Δ Γ t_D (Ξ-apply Ξ_D (in-hole Θ_p D)))
+     (subtype Δ Γ t_D (I@ (D ∞) e_p ... x_i ...))
      ;; Check that this is a valid elimination sort
      ;; TODO: Test = type
      (type-infer Δ Γ t_I U_A)
@@ -1423,6 +1341,14 @@
      (guard Δ y D f any e_2)
      ----------------------------------------------------------
      (guard Δ y D (name f e_!_1) any (@ (name e_1 e_!_1) e_2))]
+
+    [(guard Δ y D f any e) ...
+     ---------------------------------
+     (guard Δ y D f any (C@ c e ...))]
+
+    [(guard Δ y D f any e) ...
+     ---------------------------------
+     (guard Δ y D f any (I@ d e ...))]
 
     [(guard Δ y D f any t)
      (guard Δ y D f any e)
@@ -1486,10 +1412,10 @@
     #:mode (terminates I I)
     #:contract (terminates Δ e)
 
-    [(Δ-type-in Δ D _)
+    [(ind-type d D) (Δ-type-in Δ D _)
      (guard Δ y D f () e)
-     -----------------------------------------------------
-     (terminates Δ (fix f : (Π (x : (in-hole Θ D)) t) (λ (y : (in-hole Θ D)) e)))]))
+     -------------------------------------------------------------------------------
+     (terminates Δ (fix f : (Π (x : (I@ d e_j ...)) t) (λ (y : (I@ d e_j ...)) e)))]))
 
 ;; ------------------------------------------------------------------------
 ;; Vital meta-functions
@@ -1507,35 +1433,32 @@
     [(no-free-stage-vars (λ (x : t) e))
      ,(and (term (no-free-stage-vars t))
            (term (no-free-stage-vars e)))]
-
     [(no-free-stage-vars (@ e_0 e_1))
      ,(and (term (no-free-stage-vars e_0))
            (term (no-free-stage-vars e_1)))]
-
+    [(no-free-stage-vars (I@ (D ∞) e ...))
+     (all ((no-free-stage-vars e) ...))]
+    [(no-free-stage-vars (I@ (D S) e ...))
+     #f
+     (where s (base S))]
+    [(no-free-stage-vars (I@ d e ...))
+     (all ((no-free-stage-vars e) ...))]
+    [(no-free-stage-vars (C@ c e ...))
+     (all ((no-free-stage-vars e) ...))]
     [(no-free-stage-vars (Π (x : t_0) t_1))
      ,(and (term (no-free-stage-vars t_0))
            (term (no-free-stage-vars t_1)))]
-
     [(no-free-stage-vars (let (x = e_0 : t) e_1))
      ,(and (term (no-free-stage-vars e_0))
            (term (no-free-stage-vars t))
            (term (no-free-stage-vars e_1)))]
-
     [(no-free-stage-vars (case e_0 e_1 (e ...)))
      ,(and (term (no-free-stage-vars e_0))
            (term (no-free-stage-vars e_1))
            (term (all ((no-free-stage-vars e) ...))))]
-
     [(no-free-stage-vars (fix f : t e))
      ,(and (term (no-free-stage-vars t))
            (term (no-free-stage-vars e)))]
-
-    [(no-free-stage-vars (D ∞)) #t]
-
-    [(no-free-stage-vars (D S))
-     #f
-     (where s (base S))]
-
     [(no-free-stage-vars _) #t])
 
   ;; inductive types annotated with ∞ only
@@ -1544,33 +1467,30 @@
     [(full-types-only (λ (x : t) e))
      ,(and (term (full-types-only t))
            (term (full-types-only e)))]
-
     [(full-types-only (@ e_0 e_1))
      ,(and (term (full-types-only e_0))
            (term (full-types-only e_1)))]
-
+    [(full-types-only (I@ D e ...))
+     (all ((full-types-only e) ...))]
+    [(full-types-only (I@ (D ∞) e ...))
+     (all ((full-types-only e) ...))]
+    [(full-types-only (I@ d e ...)) #f]
+    [(full-types-only (C@ c e ...))
+     (all ((full-types-only e) ...))]
     [(full-types-only (Π (x : t_0) t_1))
      ,(and (term (full-types-only t_0))
            (term (full-types-only t_1)))]
-
     [(full-types-only (let (x = e_0 : t) e_1))
      ,(and (term (full-types-only e_0))
            (term (full-types-only t))
            (term (full-types-only e_1)))]
-
     [(full-types-only (case e_0 e_1 (e ...)))
      ,(and (term (full-types-only e_0))
            (term (full-types-only e_1))
            (term (all ((full-types-only e) ...))))]
-
     [(full-types-only (fix f : t e))
      ,(and (term (full-types-only t))
            (term (full-types-only e)))]
-
-    [(full-types-only (D ∞)) #t]
-    [(full-types-only (D *)) #f]
-    [(full-types-only (D °)) #f]
-    [(full-types-only (D _)) #f]
     [(full-types-only    _ ) #t])
 
   ;; stage erasure to bare terms
@@ -1590,6 +1510,13 @@
       (@ e_1 e_2)
       (where e_1 (erase-to-bare Δ e_1))
       (where e_2 (erase-to-bare Δ e_2))]
+    [(erase-to-bare Δ (I@ d e ...))
+      (I@ d e ...)
+      (where d (erase-to-bare Δ d))
+      (where (e ...) ,(map (lambda (e) (term (erase-to-bare Δ e))) (term (e ...))))]
+    [(erase-to-bare Δ (C@ c e ...))
+      (C@ c e ...)
+      (where (e ...) ,(map (lambda (e) (term (erase-to-bare Δ e))) (term (e ...))))]
     [(erase-to-bare Δ (Π (x : t_1) t_2))
       (Π (x : t_1) t_2)
       (where t_1 (erase-to-bare Δ t_1))
@@ -1625,6 +1552,13 @@
       (@ e_1 e_2)
       (where e_1 (erase-to-position Δ s e_1))
       (where e_2 (erase-to-position Δ s e_2))]
+    [(erase-to-position Δ (I@ d e ...))
+      (I@ d e ...)
+      (where d (erase-to-position Δ d))
+      (where (e ...) ,(map (lambda (e) (term (erase-to-position Δ e))) (term (e ...))))]
+    [(erase-to-position Δ (C@ c e ...))
+      (C@ c e ...)
+      (where (e ...) ,(map (lambda (e) (term (erase-to-position Δ e))) (term (e ...))))]
     [(erase-to-position Δ s (Π (x : t_1) t_2))
       (Π (x : t_1) t_2)
       (where t_1 (erase-to-position Δ s t_1))
@@ -1660,35 +1594,45 @@
      (ind-type D D)]
 
     [-------------------
-     (ind-type (D _) D)]))
+     (ind-type (D _) D)])
+
+  (define-judgment-form cicL
+    #:mode (annot-type I O)
+    #:contract (annot-type d (D S))
+
+    [-------------------------
+     (annot-type (D S) (D S))]
+
+    [---------------------
+     (annot-type D (D ∞))]))
 
 (begin ;; V defs
   ;; Get parameter variables where polarity is noninvariant (strictly positive, positive, or negative)
   (define-metafunction cicL
     pos-neg-variables : V Ξ -> (x ...)
-    [(pos-neg-variables · hole) ()]
+    [(pos-neg-variables () hole) ()]
 
-    [(pos-neg-variables (V ○) (in-hole Ξ (Π (_ : _) hole)))
-     (pos-neg-variables V Ξ)]
+    [(pos-neg-variables (○ v ...) (Π (_ : _) Ξ))
+     (pos-neg-variables (v ...) Ξ)]
 
-    [(pos-neg-variables (V ⊕) (in-hole Ξ (Π (_ : _) hole)))
-     (pos-neg-variables V Ξ)]
+    [(pos-neg-variables (⊕ v ...) (Π (_ : _) Ξ))
+     (pos-neg-variables (v ...) Ξ)]
 
-    [(pos-neg-variables (V _) (in-hole Ξ (Π (x : _) hole)))
-     (x_0 ... x)
-     (where (x_0 ...) (pos-neg-variables V Ξ))])
+    [(pos-neg-variables (v_0 v ...) (Π (x_0 : _) Ξ))
+     (x_0 x ...)
+     (where (x ...) (pos-neg-variables (v ...) Ξ))])
 
   ;; Get parameter variables where polarity is strictly positive
   (define-metafunction cicL
     strictly-positive-variables : V Ξ -> (x ...)
-    [(strictly-positive-variables · hole) ()]
+    [(strictly-positive-variables () hole) ()]
 
-    [(strictly-positive-variables (V ⊕) (in-hole Ξ (Π (x : _) hole)))
-     (x_0 ... x)
-     (where (x_0 ...) (strictly-positive-variables V Ξ))]
+    [(strictly-positive-variables (⊕ v ...) (Π (x_0 : _) Ξ))
+     (x_0 x ...)
+     (where (x ...) (strictly-positive-variables (v ...) Ξ))]
 
-    [(strictly-positive-variables (V _) (in-hole Ξ (Π (_ : _) hole)))
-     (strictly-positive-variables V Ξ)]))
+    [(strictly-positive-variables (v_0 v ...) (Π (_ : _) Ξ))
+     (strictly-positive-variables (v ...) Ξ)]))
 
 (begin ;; Γ defs
   ;; Make x : t ∈ Γ a little easier to use, prettier to render
@@ -1752,7 +1696,7 @@
     [(Δ-constructor-ref-non-parameter-count Δ c)
      ,(- (term (Ξ-length Ξ)) (term n))
      (where n (Δ-constructor-ref-parameter-count Δ c))
-     (judgment-holds (Δ-constr-in Δ c (in-hole Ξ (in-hole Θ D))))])
+     (judgment-holds (Δ-constr-in Δ c (in-hole Ξ (I@ d e ...))))])
 
   ;; Return the vector of polarities for the inductive type D
   (define-metafunction cicL
@@ -1828,7 +1772,7 @@
     [(Δ-constructor-ref-index-Ξ Δ c Θ)
      Ξ
      (where t (Δ-ref-constructor-type Δ c))
-     (where (in-hole Ξ (in-hole Θ_0 D)) (instantiate t Θ))])
+     (where (in-hole Ξ (I@ d e ...)) (instantiate t Θ))])
 
   ;; constructors appear applied to their parameters and indices, but methods expect indices
   ;; create a new application context without the the parameters
@@ -1869,9 +1813,36 @@
     [(Ξ-take-parameters Δ D Ξ)
      (Ξ-take Ξ n)
      (where #t (Δ-in-dom Δ D))
-     (where n (Δ-ref-parameter-count Δ D))]))
+     (where n (Δ-ref-parameter-count Δ D))])
+
+  (define-metafunction cicL
+    take-parameters-indices : Δ D (e ...) -> ((e ...) (e ...))
+    [(take-parameters-indices Δ D (e ...))
+     ((e_p ...) (e_i ...))
+     (where #t (Δ-in-dom Δ D))
+     (where n (Δ-ref-parameter-count Δ D))
+     (where (e_p ...) (take (e ...) n))
+     (where (e_i ...) (drop (e ...) n))]
+    [(take-parameters-indices Δ c (e ...))
+     ((e_p ...) (e_i ...))
+     (judgment-holds (Δ-constr-in Δ c t))
+     (where n (Δ-constructor-ref-parameter-count Δ c))
+     (where (e_p ...) (take (e ...) n))
+     (where (e_i ...) (drop (e ...) n))]))
 
 (begin ;; aux defs
+  (define-metafunction cicL
+    I@-to-@ : D t -> t
+    [(I@-to-@ D (I@ d e_I ...))
+     (in-hole (Θ-build (e ...)) d)
+     (where (e ...) ((I@-to-@ D e_I) ...))
+     (judgment-holds (ind-type d D))]
+    [(I@-to-@ D (Π (x : t_I0) t_I1))
+     (Π (x : t_0) t_1)
+     (where t_0 (I@-to-@ D t_I0))
+     (where t_1 (I@-to-@ D t_I1))]
+    [(I@-to-@ D e) e])
+
   (define-metafunction cicL
     free-variable : (any ...) x -> x
     [(free-variable (any) x)
@@ -1923,6 +1894,13 @@
     [(Ξ-take (Π (x : t) Ξ) n)
      (Π (x : t) (Ξ-take Ξ ,(sub1 (term n))))])
 
+  (define-metafunction cicL
+    Θ-build : (e ...) -> Θ
+    [(Θ-build ())
+     hole]
+    [(Θ-build (e e_r ...))
+     (in-hole (Θ-build (e_r ...)) (@ hole e))])
+
   ;; Return the list of operands from Θ in reverse dependency order
   (define-metafunction cicL
     Θ-flatten : Θ -> (e ...)
@@ -1953,6 +1931,23 @@
     [(Θ-take (in-hole Θ (@ hole e)) n)
      (in-hole (Θ-take Θ ,(sub1 (term n))) (@ hole e))])
 
+  (define-metafunction cicL
+    drop : (e_0 ...) n_0 -> (e ...)
+    #:pre ,(<= (term n_0) (length (term (e_0 ...))))
+    [(drop (e ...) 0)
+     (e ...)]
+    [(drop (e_0 e ...) n)
+     (drop (e ...) ,(sub1 (term n)))])
+
+  (define-metafunction cicL
+    take : (e_0 ...) n_0 -> (e ...)
+    #:pre ,(<= (term n_0) (length (term (e_0 ...))))
+    [(take (e ...) 0)
+     ()]
+    [(take (e_0 e ...) n)
+     (e_0 e_r ...)
+     (where (e_r ...) (take (e ...) ,(sub1 (term n))))])
+
   ;; Instantiate a Π type
   (define-metafunction cicL
     instantiate : t Θ -> t
@@ -1969,16 +1964,16 @@
    #:lang cicL
    (Ξ-length hole) 0
    (Ξ-length (Π (x : Set) hole)) 1
-   (Δ-ref-constructor-type Δnb z) Nat
-   (Δ-ref-constructor-type Δnb s) (Π (x : Nat) Nat)
+   (Δ-ref-constructor-type Δnb z) (I@ Nat)
+   (Δ-ref-constructor-type Δnb s) (Π (x : (I@ Nat)) (I@ Nat))
    (Δ-ref-index-Ξ Δnb Nat hole) hole
-   (Δ-ref-constructor-map Δnb Nat) ((z : Nat) (s : (Π (x : Nat) Nat)))
+   (Δ-ref-constructor-map Δnb Nat) ((z : (I@ Nat)) (s : (Π (x : (I@ Nat)) (I@ Nat))))
 
    #:m hole (Δ-constructor-ref-index-Ξ Δnb z hole)
-   #:m (Π (x : Nat) hole) (Δ-constructor-ref-index-Ξ Δnb s hole)
-   #:m hole (Δ-constructor-ref-index-Ξ Δlist nil (@ hole Nat))
+   #:m (Π (x : (I@ Nat)) hole) (Δ-constructor-ref-index-Ξ Δnb s hole)
+   #:m hole (Δ-constructor-ref-index-Ξ Δlist nil (@ hole (I@ Nat)))
 
-   #:m (Π (x_2 : Nat) (Π (x_3 : (@ List Nat)) hole)) (Δ-constructor-ref-index-Ξ Δlist cons (@ hole Nat))
+   #:m (Π (x_2 : (I@ Nat)) (Π (x_3 : (I@ List (I@ Nat))) hole)) (Δ-constructor-ref-index-Ξ Δlist cons (@ hole (I@ Nat)))
    (Ξ-apply hole Nat) Nat
-   (in-hole hole (Π (x : (Ξ-apply hole Nat)) Set)) (Π (x : Nat) Set)
+   (in-hole hole (Π (x : (Ξ-apply hole (I@ Nat))) Set)) (Π (x : (I@ Nat)) Set)
    (Δ-key-by-constructor Δnb z) Nat))
