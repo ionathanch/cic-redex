@@ -139,11 +139,6 @@
          (λ (x : (I@ Nat))
            (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f x)))))))
 
-  #;(define-term subn
-    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
-         (λ (x : (I@ (Nat °)))
-           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f x)))))))
-
   (define-term plus
     (fix add : (Π (n : (I@ Nat)) (Π (m : (I@ Nat)) (I@ Nat)))
       (λ (n : (I@ Nat))
@@ -153,25 +148,11 @@
              (λ (x : (I@ Nat))
                (C@ s (@ (@ add x) m)))))))))
 
-  #;(define-term plus
-    (fix add : (Π (n : (I@ (Nat *))) (Π (m : (I@ (Nat °))) (I@ (Nat °))))
-      (λ (n : (I@ (Nat °)))
-        (λ (m : (I@ (Nat °)))
-          (case n (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-            (m
-             (λ (x : (I@ (Nat s)))
-               (C@ s (@ (@ add x) m)))))))))
-
   ;; ill-typed but well-formed
   (define-term subn-bad1
     (fix f : (Π (x : (I@ Nat)) (I@ Nat))
          (λ (x : (I@ Nat))
            (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f z)))))))
-
-  #;(define-term subn-bad1
-    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
-         (λ (x : (I@ (Nat °)))
-           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f z)))))))
 
   (define-term subn-bad2
     (fix f : (Π (x : (I@ Nat)) (I@ Nat))
@@ -179,20 +160,9 @@
            (λ (x : (I@ Nat))
              (case x (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) (@ f x))))))))
 
-  #;(define-term subn-bad2
-    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
-         (λ (A : Set)
-           (λ (x : (I@ (Nat °)))
-             (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) (@ f x))))))))
-
   (define-term Ω
     (fix f : (Π (x : (I@ Nat)) (I@ Nat))
          (λ (x : (I@ Nat))
-           (@ f x))))
-
-  #;(define-term Ω
-    (fix f : (Π (x : (I@ (Nat *))) (I@ (Nat °)))
-         (λ (x : (I@ (Nat °)))
            (@ f x))))
 
   (redex-chk
@@ -373,11 +343,8 @@
    (reduce · · (@ (λ (x : (Type 0)) x) z)) z
    (reduce · · f) f
    (reduce · · (in-hole (@ hole z) (λ (x : Nat) Nat))) Nat
-   ;; #;(reduce · · (in-hole (@ hole z) (λ (x : (Nat °)) Nat))) Nat
    (reduce Δnb · (case (C@ z) (λ (x : Nat) Nat) ((C@ z) (λ (x : Nat) x)))) (C@ z)
-   ;; #;(reduce Δnb · (case z (λ (x : (Nat (^ s))) Nat) (z (λ (x : (Nat s)) x)))) z
    (reduce Δlist · (case (C@ nil Nat) (λ (ls : (I@ List Nat)) Bool) (true false))) true
-   ;; #;(reduce Δlist · (case (C@ nil Nat) (λ (ls : (I@ (List (^ s)) Nat)) Bool) (true false))) true
    (reduce Δnb (· (x : Nat)) (@ subn x)) (@ subn x)
    (reduce Δnb · (@ subn (C@ z))) (C@ z)
    (reduce Δnb · (@ subn (C@ s (C@ z)))) (C@ z)
@@ -767,9 +734,7 @@
    (type-infer Δlist ·)
    [(λ (x : (I@ Nat)) (I@ Nat)) t]
    [(λ (x : (I@ Nat)) (I@ Nat)) t]
-   #;[(λ (x : (I@ (Nat °))) (I@ Nat)) t]
    [(case (C@ z) (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) x))) t]
-   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) t]
    [#:f nil (I@ List A)]
    [(C@ nil (I@ Nat)) t]
    [(I@ List (I@ Nat)) Set]
@@ -786,28 +751,16 @@
    [· (· (Nat : Set)) (Π (n : Nat) Nat) (Type 1)]
    [Δnb (· (x : (I@ Nat))) (I@ Nat) Set]
    [Δnb (· (Nat : Set)) (λ (n : Nat) n) (Π (n : Nat) Nat)]
-   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) t]
    [Δnb ((· (f : (-> (I@ Nat) (I@ Nat)))) (x : (I@ Nat)))
         (case x (λ (x : (I@ Nat)) (I@ Nat))
               ((C@ z)
                (λ (x : (I@ Nat)) (@ f x))))
-        (I@ Nat)]
-    #;[Δnb ((· (f : (-> (I@ Nat) (I@ Nat)))) (x : (I@ Nat)))
-        (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-              ((C@ z)
-               (λ (x : (I@ (Nat s))) (@ f x))))
         (I@ Nat)]
    [Δnb (· (f : (-> (I@ Nat) (I@ Nat))))
     (λ (x : (I@ Nat))
       (case x (λ (x : (I@ Nat)) (I@ Nat))
             ((C@ z)
              (λ (x : (I@ Nat)) (@ f x)))))
-    (Π (y : (I@ Nat)) (I@ Nat))]
-    #;[Δnb (· (f : (-> (I@ Nat) (I@ Nat))))
-    (λ (x : (I@ (Nat °)))
-      (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-            ((C@ z)
-             (λ (x : (I@ (Nat s))) (@ f x)))))
     (Π (y : (I@ Nat)) (I@ Nat))])
 
   (redex-relation-chk
@@ -817,24 +770,14 @@
    [(C@ s (C@ z)) (I@ Nat)]
    [(Π (x : (I@ Nat)) Set) (Type 1)]
    [(λ (x : (I@ Nat)) (I@ Nat)) (Π (x : (I@ Nat)) Set)]
-   #;[(λ (x : (I@ (Nat °))) (I@ Nat)) (Π (x : (I@ Nat)) Set)]
    [(λ (x : (I@ Nat)) x) (Π (x : (I@ Nat)) (I@ Nat))]
-   #;[(λ (x : (I@ (Nat °))) x) (Π (x : (I@ Nat)) (I@ Nat))]
    [(case (C@ z) (λ (x : (I@ Nat)) (I@ Nat)) ((C@ z) (λ (x : (I@ Nat)) x))) (I@ Nat)]
-   #;[(case (C@ z) (λ (x : (I@ (Nat (^ s)))) (I@ Nat)) ((C@ z) (λ (x : (I@ (Nat s))) x))) (I@ Nat)]
    [(case (C@ true) (λ (x : (I@ Bool)) (I@ Nat)) ((C@ z) (C@ s (C@ z)))) (I@ Nat)]
-   #;[(case (C@ true) (λ (x : (I@ (Bool (^ s)))) (I@ Nat)) ((C@ z) (C@ s (C@ z)))) (I@ Nat)]
    [(fix f : (-> (I@ Nat) (I@ Nat))
          (λ (x : (I@ Nat))
            (case x (λ (x : (I@ Nat)) (I@ Nat))
                  ((C@ z)
                   (λ (x : (I@ Nat)) (C@ s x))))))
-    (Π (x : (I@ Nat)) (I@ Nat))]
-   #;[(fix f : (-> (I@ (Nat *)) (I@ Nat))
-         (λ (x : (I@ (Nat °)))
-           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-                 ((C@ z)
-                  (λ (x : (I@ (Nat s))) (C@ s x))))))
     (Π (x : (I@ Nat)) (I@ Nat))]
    [(fix f : (-> (I@ Nat) (I@ Nat))
          (λ (x : (I@ Nat))
@@ -842,32 +785,18 @@
                  ((C@ z)
                   (λ (x : (I@ Nat)) (@ f x))))))
     (Π (x : (I@ Nat)) (I@ Nat))]
-   #;[(fix f : (-> (I@ (Nat *)) (I@ Nat))
-         (λ (x : (I@ (Nat °)))
-           (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-                 ((C@ z)
-                  (λ (x : (I@ (Nat s))) (@ f x))))))
-    (Π (x : (I@ Nat)) (I@ Nat))]
    [#:f (fix f : (-> (I@ Nat) (I@ Nat))
              (λ (x : (I@ Nat))
                (case x (λ (x : (I@ Nat)) (I@ Nat))
                      ((@ f x)
                       (λ (y : (I@ Nat)) (@ f x))))))
     (Π (x : (I@ Nat)) (I@ Nat))]
-   #;[#:f (fix f : (-> (I@ Nat) (I@ Nat))
-             (λ (x : (I@ (Nat °)))
-               (case x (λ (x : (I@ (Nat (^ s)))) (I@ Nat))
-                     ((@ f x)
-                      (λ (y : (I@ (Nat s))) (@ f x))))))
-    (Π (x : (I@ Nat)) (I@ Nat))]
    [(let ([n = (C@ z) : (I@ Nat)]) (C@ z)) (I@ Nat)]
    [(let ([n = (C@ z) : (I@ Nat)]) n) (I@ Nat)]
    [(let ([Nat^ = (I@ Nat) : Set] [n = (C@ z) : Nat^]) n) (I@ Nat)]
    [(C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (I@ List (I@ Nat))]
    [(case (C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (λ (ls : (I@ List (I@ Nat))) (I@ Bool))
-          ((C@ true) (λ (n : (I@ Nat)) (ls : (I@ List (I@ Nat))) (C@ false)))) (I@ Bool)]
-   #;[(case (C@ cons (I@ Nat) (C@ z) (C@ nil (I@ Nat))) (λ (ls : (I@ (List (^ s)) (I@ Nat))) Bool)
-          ((C@ true) (λ (n : (I@ Nat)) (ls : (I@ (List s) (I@ Nat))) (C@ false)))) (I@ Bool)]))
+          ((C@ true) (λ (n : (I@ Nat)) (ls : (I@ List (I@ Nat))) (C@ false)))) (I@ Bool)]))
 
 ;; ------------------------------------------------------------------------
 ;; Typing aux
@@ -1492,89 +1421,6 @@
      ,(and (term (full-types-only t))
            (term (full-types-only e)))]
     [(full-types-only    _ ) #t])
-
-  ;; stage erasure to bare terms
-  (define-metafunction cicL
-    erase-to-bare : Δ e -> e
-    [(erase-to-bare Δ D)
-     (D °)
-     (where #t (Δ-in-dom Δ D))]
-    [(erase-to-bare Δ (D S))
-     (D °)]
-    [(erase-to-bare Δ (D *))
-     (D °)]
-    [(erase-to-bare Δ (λ (x : t) e))
-      (λ (x : t) e)
-      (where e (erase-to-bare Δ e))]
-    [(erase-to-bare Δ (@ e_1 e_2))
-      (@ e_1 e_2)
-      (where e_1 (erase-to-bare Δ e_1))
-      (where e_2 (erase-to-bare Δ e_2))]
-    [(erase-to-bare Δ (I@ d e ...))
-      (I@ d e ...)
-      (where d (erase-to-bare Δ d))
-      (where (e ...) ,(map (lambda (e) (term (erase-to-bare Δ e))) (term (e ...))))]
-    [(erase-to-bare Δ (C@ c e ...))
-      (C@ c e ...)
-      (where (e ...) ,(map (lambda (e) (term (erase-to-bare Δ e))) (term (e ...))))]
-    [(erase-to-bare Δ (Π (x : t_1) t_2))
-      (Π (x : t_1) t_2)
-      (where t_1 (erase-to-bare Δ t_1))
-      (where t_2 (erase-to-bare Δ t_2))]
-    [(erase-to-bare Δ (let (x = e_1 : t) e_2))
-      (let (x = e_1 : t) e_2)
-      (where e_1 (erase-to-bare Δ e_1))
-      (where e_2 (erase-to-bare Δ e_2))]
-    [(erase-to-bare Δ (case e_1 e_2 (e_3 ...)))
-      (case e_1 e_2 constr)
-      (where e_1 (erase-to-bare Δ e_1))
-      (where constr ,(map (lambda (e) (term (erase-to-bare Δ e))) (term (e_3 ...))))]
-    [(erase-to-bare Δ (fix f : t e))
-      (fix f : t e)
-      (where e (erase-to-bare Δ e))]
-    [(erase-to-bare Δ e) e])
-
-  ;; stage erasure to position terms
-  (define-metafunction cicL
-    erase-to-position : Δ s e -> e
-    [(erase-to-position Δ s D)
-     (D °)
-     (where #t (Δ-in-dom Δ D))]
-    [(erase-to-position Δ s (D ∞)) (D °)]
-    [(erase-to-position Δ s (D S))
-     ,(if (eq? (term s) (term (base S)))
-          (term (D *))
-          (term (D °)))]
-    [(erase-to-position Δ s (λ (x : t) e))
-      (λ (x : t) e)
-      (where e (erase-to-position Δ s e))]
-    [(erase-to-position Δ s (@ e_1 e_2))
-      (@ e_1 e_2)
-      (where e_1 (erase-to-position Δ s e_1))
-      (where e_2 (erase-to-position Δ s e_2))]
-    [(erase-to-position Δ (I@ d e ...))
-      (I@ d e ...)
-      (where d (erase-to-position Δ d))
-      (where (e ...) ,(map (lambda (e) (term (erase-to-position Δ e))) (term (e ...))))]
-    [(erase-to-position Δ (C@ c e ...))
-      (C@ c e ...)
-      (where (e ...) ,(map (lambda (e) (term (erase-to-position Δ e))) (term (e ...))))]
-    [(erase-to-position Δ s (Π (x : t_1) t_2))
-      (Π (x : t_1) t_2)
-      (where t_1 (erase-to-position Δ s t_1))
-      (where t_2 (erase-to-position Δ s t_2))]
-    [(erase-to-position Δ s (let (x = e_1 : t) e_2))
-      (let (x = e_1 : t) e_2)
-      (where e_1 (erase-to-position Δ s e_1))
-      (where e_2 (erase-to-position Δ s e_2))]
-    [(erase-to-position Δ (case e_1 e_2 (e_3 ...)))
-      (case e_1 e_2 constr)
-      (where e_1 (erase-to-position Δ s e_1))
-      (where constr ,(map (lambda (e) (term (erase-to-position Δ s e))) (term (e_3 ...))))]
-    [(erase-to-position Δ (fix f : t e))
-      (fix f : t e)
-      (where e (erase-to-position Δ s e))]
-    [(erase-to-position Δ e) e])
 
   (define-judgment-form cicL
     #:mode (full-type I O)
