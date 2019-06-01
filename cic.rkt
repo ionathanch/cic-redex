@@ -673,7 +673,7 @@
 
     [(Δ-constr-in Δ c t_c) (wf Δ Γ)
      (where c_0 (free-variable (Δ Γ) c))
-     (where s (free-variable (Δ Γ t_c c_0) c_0)) ;; TODO: Replace c_0 with literal variable name `s`
+     (where s (free-variable (Δ Γ t_c c_0) ,'s))
      (where Θ_c (Θ-build (e_pa ...)))
      (type-infer Δ (Γ (c_0 : t_c)) (in-hole Θ_c c_0) (I@ d e ...)) ;; Treat constructor as a normal function
      (ind-type d D)
