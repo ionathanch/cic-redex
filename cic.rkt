@@ -236,7 +236,7 @@
      --------------------
      (max-U U_1 U_2 U_1)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    <=U
    [Prop Set]
@@ -280,7 +280,7 @@
     [----------
      (<=S S ∞)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    <=S
    [s s]
@@ -347,7 +347,7 @@
      ----------------------
      (normalize Δ Γ e e_0)]))
 
-#;(module+ test
+(module+ test
   (redex-chk
    #:lang cicL
    (reduce Δnb · Nat) Nat
@@ -390,7 +390,7 @@
    ----------------- "≡-η₂"
    (convert Δ Γ e_0 e_1)])
 
-#;(module+ test
+(module+ test
   (define ((cicL-equiv Δ Γ) x y)
     (judgment-holds (convert ,Δ ,Γ ,x ,y)))
 
@@ -461,7 +461,7 @@
    --------------------------------- "vst-neg"
    (subtype-polarity Δ Γ - e_0 e_1)])
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (subtype Δlist ·)
    [Prop Prop]
@@ -485,7 +485,7 @@
    [(I@ (Nat ∞)) (I@ (Nat ∞))]
    [(I@ (List S) INat) (I@ (List (^ S)) INat)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (subtype-polarity · ·)
    [⊕ Prop Set]
@@ -585,7 +585,7 @@
      --------------------------------------------------------- "W-Ind"
      (wf (name Δ_0 (Δ (D : n V (name t (in-hole Ξ U)) _))) ·)])) ;; I3
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    valid-constructor
    [Δ01 (tt : IUnit)]
@@ -719,7 +719,7 @@
      --------------------- "Conv"
      (type-check Δ Γ e t)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (type-infer · ·)
    [(Type 0) (Type 1)]
@@ -898,7 +898,7 @@
      -----------------------------
      (neg-stage-polarity Δ ○ s e)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (pos-stage Δlist)
    [s Prop]
@@ -906,7 +906,7 @@
    [s (I@ (List s) (I@ (Nat s)))]
    [s (Π (n : Nat) (I@ (List s) INat))]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (neg-stage Δlist)
    [s Prop]
@@ -914,7 +914,7 @@
    [s (I@ (List r) (I@ (Nat r)))]
    [s (Π (l : (I@ (List s) INat)) (I@ (Nat r)))]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (pos-stage-polarity Δlist)
    [⊕ s (I@ (List s) INat)]
@@ -922,7 +922,7 @@
    [- s (I@ (List r) INat)]
    [○ s INat]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (neg-stage-polarity Δlist)
    [⊕ s (I@ (List r) INat)]
@@ -1016,7 +1016,7 @@
      ----------------------------
      (neg-term-polarity Δ ○ x e)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (pos-term Δlist)
    [x Prop]
@@ -1024,14 +1024,14 @@
    [x (Π (x : Prop) Set)]
    [x (Π (x : Set) (I@ List x))]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (neg-term Δlist)
    [x Prop]
    [x (Π (x : Prop) Set)]
    [x (Π (y : (I@ List x)) INat)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (pos-term-polarity Δlist)
    [⊕ x (I@ List x)]
@@ -1039,7 +1039,7 @@
    [- x (Π (y : (I@ List x)) INat)]
    [○ x INat]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (neg-term-polarity Δlist)
    [⊕ x (Π (y : (I@ List x)) INat)]
@@ -1081,7 +1081,7 @@
      ----------------------------------------
      (pos-context Δ (○ v ...) (x x_0 ...) Ξ)]))
 
-#;(module+ test
+(module+ test
  (redex-judgment-holds-chk
   (pos-context Δlist)
   [(⊕) (x) (Π (y : (Π (y : INat) (I@ List x))) hole)]
@@ -1147,7 +1147,7 @@
      ----------------------------------------------
      (strict-positivity-product Δ x (Π (_ : t) Ξ))]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (strict-positivity Δlist)
    [Nat Prop]
@@ -1156,7 +1156,7 @@
    [Nat (Π (x : Set) (I@ (Nat ∞)))]
    [Nat (I@ (List ∞) (I@ (Nat ∞)))]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (strict-positivity-polarity Δlist)
    [⊕ Nat (I@ (List ∞) (I@ (Nat ∞)))]
@@ -1199,7 +1199,7 @@
      ------------------------ "sv-ninv"
      (simple-polarity Δ v t)]))
 
-#;(module+ test
+(module+ test
   (redex-judgment-holds-chk
    (simple Δlist)
    [(Π (x : (I@ (List s) (I@ (Nat s)))) (Π (y : (I@ (Nat ∞))) (Π (z : (I@ (List ∞) (I@ (Nat s))))  (I@ (Nat ∞)))))]))
