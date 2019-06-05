@@ -40,7 +40,7 @@
 
   (U ::= (Type i) Set Prop)
   (S ::= r s p (^ S) ∞)
-  (e t ::= c x (λ (x : t) e) (@ e e) (I@ d t ...) (C@ c e ...) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : t e))
+  (e t ::= c x (λ (x : t) e) (@ e e) (I@ d t ...) (C@ c e ...) (Π (x : t) t) U (let (x = e : t) e) (case e e (e ...)) (fix f : (t s) e))
   (d :: = (D °) (D *) (D S) D)  ;; inductive types with size annotations: bare, position, stage; D == (D ∞)
   (Γ ::= · (Γ (x : t)) (Γ (x = e : t)))
   (Δ ::= · (Δ (D : n V t Γ)))
@@ -693,22 +693,27 @@
      --------------------------------- "Constr"
      (type-infer Δ Γ (C@ c e_pa ...) t)]
 
-    [(type-infer Δ Γ e (name t_I (I@ d e_pi ...)))
-     (ind-type d D)
-     (where Θ (Θ-build (e_pi ...)))
-     (where Θ_p (take-parameters Δ D Θ))  ;; Extend Γ with parameters determined from e_Di ...
-     (where Θ_i (take-indicies Δ D Θ))
-     (check-motive Δ Γ t_I D Θ_p e_motive) ;; Check the motive matches the inductive type
+    [(type-infer Δ Γ e (name t_I (I@ (D (^ s)) e_pi ...)))
+     (type-infer Δ Γ t_I U_A)
+     (type-infer Δ Γ e_motive (Π (x : t_D) U_B))
+     (elimable Δ D U_A U_B)
+     (where ((e_p ...) (e_i ...)) (take-parameters-indices Δ D (e_pi ...)))
+     (where Θ_p (Θ-build (e_p ...)))
+     (where Θ_i (Θ-build (e_i ...)))
      (where t (@ (in-hole Θ_i e_motive) e)) (type-infer Δ Γ t U)
-     (check-methods Δ Γ D t Θ_p (e_m ...)) ;; Check the methods match their constructors, and return type from motive
+     (check-methods Δ Γ D s t Θ_p (e_m ...)) ;; Check the methods match their constructors, and return type from motive
      ------------------------------------------------- "match"
      (type-infer Δ Γ (case e e_motive (e_m ..._1)) t)]
 
-    [(terminates Δ e_fix)
+    [(pos-stage Δ s t_r)
+     (side-condition (all ((not-free-in s Δ)
+                           (not-free-in s Γ)
+                           (not-free-in s e)
+                           (not-free-in s e_pi) ...)))
      (type-infer Δ Γ t U)
-     (type-check Δ (Γ (f : t)) e t)
+     (type-check Δ (Γ (f : t)) e (substitute t s (^ s)))
      ---------------------------------------------- "Fix"
-     (type-infer Δ Γ (name e_fix (fix f : t e)) t)])
+     (type-infer Δ Γ (name e_fix (fix f : ((name t (Π (x : (I@ (D s) e_pi ...)) t_r)) s) e)) t)])
 
   ;; Under global declarations Δ and term environment Γ, does e have a type that is convertible to t?
   (define-judgment-form cicL
@@ -1250,14 +1255,15 @@
      (check-motive Δ Γ t_I D Θ_p e)])
 
   (define-judgment-form cicL
-    #:mode (check-methods I I I I I I)
-    #:contract (check-methods Δ Γ D t Θ (e ...))
+    #:mode (check-methods I I I I I I I)
+    #:contract (check-methods Δ Γ D s t Θ (e ...))
 
     [(where (c ..._1) (Δ-ref-constructors Δ D))
      (where (Ξ_c ..._1) ((Δ-constructor-ref-index-Ξ Δ c Θ) ...))
+     ;; TODO: Where D appears in Ξ_c, annotate with s
      (type-check Δ Γ e (in-hole Ξ_c t)) ...
      ----------------------------------
-     (check-methods Δ Γ D t Θ (e ...))]))
+     (check-methods Δ Γ D s t Θ (e ...))]))
 
 (begin ;; guard condition
 
